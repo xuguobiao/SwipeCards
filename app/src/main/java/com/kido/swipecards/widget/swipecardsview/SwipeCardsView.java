@@ -1,4 +1,4 @@
-package com.kido.swipecards.widget;
+package com.kido.swipecards.widget.swipecardsview;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -112,21 +112,21 @@ public class SwipeCardsView extends LinearLayout {
         }
     };
 
-    private int getCardLayoutId(int layoutid) {
-        String resourceTypeName = getContext().getResources().getResourceTypeName(layoutid);
+    private int getCardLayoutId(int layoutId) {
+        String resourceTypeName = getContext().getResources().getResourceTypeName(layoutId);
         if (!resourceTypeName.contains("layout")) {
-            String errorMsg = getContext().getResources().getResourceName(layoutid) + " is a illegal layoutid , please check your layout id first !";
+            String errorMsg = getContext().getResources().getResourceName(layoutId) + " is a illegal layoutId , please check your layout id first !";
             throw new RuntimeException(errorMsg);
         }
-        return layoutid;
+        return layoutId;
     }
 
-    private void bindCardData(int position, View cardview) {
+    private void bindCardData(int position, View cardView) {
         if (mAdapter != null) {
-            mAdapter.onBindData(position, cardview);
-            cardview.setTag(position);
+            mAdapter.onBindData(position, cardView);
+            cardView.setTag(position);
         }
-        cardview.setVisibility(View.VISIBLE);
+        cardView.setVisibility(View.VISIBLE);
     }
 
     private boolean mWaitRefresh = false;
