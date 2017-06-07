@@ -13,7 +13,6 @@ import android.widget.Adapter;
 import android.widget.FrameLayout;
 
 import com.kido.swipecards.R;
-import com.kido.swipecards.utils.Logger;
 
 import java.util.ArrayList;
 
@@ -37,6 +36,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private AdapterDataSetObserver mDataSetObserver;
     private boolean mInLayout = false;
     private View mActiveCard = null;
+    private View mLastCard = null;
     private OnItemClickListener mOnItemClickListener;
     private FlingCardListener flingCardListener;
 
@@ -45,6 +45,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
     private int initTop;
     private int initLeft;
+
+    private boolean mRequestGobackPreCard = false;
 
     public SwipeCardsView(Context context) {
         this(context, null);
@@ -117,7 +119,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
             removeAndAddToCache(0);
         } else {
             View topCard = getChildAt(LAST_OBJECT_IN_STACK);
-            if (mActiveCard != null && topCard != null && topCard == mActiveCard) {
+            if (!mRequestGobackPreCard && mActiveCard != null && topCard != null && topCard == mActiveCard) {
 //                removeViewsInLayout(0, LAST_OBJECT_IN_STACK);
                 removeAndAddToCache(1);
                 layoutChildren(1, adapterCount);
@@ -245,7 +247,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
     private void adjustChildrenOfUnderTopView(float scrollRate) {
         int count = getChildCount();
-        Logger.e("Kido", "adjustChildrenOfUnderTopView-> scrollRate=%s, count=%s, LAST_OBJECT_IN_STACK=%s", scrollRate, count, LAST_OBJECT_IN_STACK);
         if (count > 1) {
             // count >= maxVisibleCount, 顶部和底部的view不动，中间的动。因为底部已经是最小（重合的时候底部上一张也是最小，它会用来变动），顶部已经是最大。index 的范围是 [1, count-2], multiple 为最大的 maxVisibleCount-2
             //
@@ -267,7 +268,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 //            }
             float rate = Math.abs(scrollRate);
             for (; i < count - 1; i++, multiple--) {
-                Logger.e("Kido", "for -> i=%s, multiple=%s, LAST_OBJECT_IN_STACK=%s", i, multiple, LAST_OBJECT_IN_STACK);
                 View underTopView = getChildAt(i);
                 int offset = (int) (yOffsetStep * (multiple - rate));
                 underTopView.offsetTopAndBottom(offset - underTopView.getTop() + initTop);
@@ -311,6 +311,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                 // 设置是否支持左右滑
                 flingCardListener.setIsNeedSwipe(isNeedSwipe);
                 mActiveCard.setOnTouchListener(flingCardListener);
+                flingCardListener.flyIn();
+                mRequestGobackPreCard = false;
             }
         }
     }
@@ -350,6 +352,17 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
     public void swipeRight(int duration) {
         getTopCardListener().selectRight(duration);
+    }
+
+    public void gobackPreCard() {
+        if (mFlingListener != null) {
+            mRequestGobackPreCard = true;
+            mFlingListener.onRequestGoback();
+        }
+    }
+
+    public void flyIn() {
+        getTopCardListener().flyIn();
     }
 
     @Override
@@ -411,6 +424,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         void onCardExit(int swipeAction, T data);
 
         void onAdapterAboutToEmpty(int itemsInAdapter);
+
+        void onRequestGoback();
 
 //        void onScroll(float progress, float scrollXProgress);
     }

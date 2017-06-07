@@ -37,7 +37,8 @@ public class SwipeCardsActivity extends AppCompatActivity {
         preButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mSwipeCardsView.swipeLeft(500);
+//                mSwipeCardsView.swipeLeft(500);
+                mSwipeCardsView.gobackPreCard();
             }
         });
 
@@ -53,7 +54,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
 
             @Override
             public void onCardExit(int swipeAction, Object data) {
-                mVideoAdapter.removeToTail(0);
+                mVideoAdapter.moveToTail(0);
             }
 
             @Override
@@ -61,8 +62,8 @@ public class SwipeCardsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onScroll(float progress, float scrollXProgress) {
-
+            public void onRequestGoback() {
+                mVideoAdapter.moveToHead(mVideoAdapter.getCount() - 1);
             }
         });
 

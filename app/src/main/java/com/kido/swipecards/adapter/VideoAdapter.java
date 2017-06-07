@@ -38,13 +38,19 @@ public class VideoAdapter extends BaseAdapter {
         mInflater = LayoutInflater.from(mContext);
     }
 
-    public void addAll(List<VideoData> collection) {
-        if (isEmpty()) {
-            mList.addAll(collection);
-            notifyDataSetChanged();
-        } else {
-            mList.addAll(collection);
-        }
+    public void addAll(List<VideoData> datas) {
+        mList.addAll(datas);
+        notifyDataSetChanged();
+    }
+
+    public void add(VideoData data) {
+        mList.add(data);
+        notifyDataSetChanged();
+    }
+
+    public void add(int index, VideoData data) {
+        mList.add(index, data);
+        notifyDataSetChanged();
     }
 
     public void clear() {
@@ -68,9 +74,21 @@ public class VideoAdapter extends BaseAdapter {
      *
      * @param index
      */
-    public void removeToTail(int index) {
+    public void moveToTail(int index) {
         if (index > -1 && index < mList.size()) {
             mList.add(mList.remove(index));
+            notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * 移除item后插入到头部
+     *
+     * @param index
+     */
+    public void moveToHead(int index) {
+        if (index > -1 && index < mList.size()) {
+            mList.add(0, mList.remove(index));
             notifyDataSetChanged();
         }
     }
@@ -103,9 +121,13 @@ public class VideoAdapter extends BaseAdapter {
         }
 
         VideoData data = mList.get(position);
-        holder.authorIcon.setImageResource(data.authorIcon);
+        if (data.authorIcon > 0) {
+            holder.authorIcon.setImageResource(data.authorIcon);
+        }
         holder.title.setText(data.title);
-        holder.video.setImageResource(data.videoThumb);
+        if (data.videoThumb > 0) {
+            holder.video.setImageResource(data.videoThumb);
+        }
         holder.videoTitle.setText(data.videoTitle);
         holder.indicatorText.setText(data.indicatorText);
 

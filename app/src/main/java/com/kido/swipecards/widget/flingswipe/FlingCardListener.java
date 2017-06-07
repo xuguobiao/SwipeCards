@@ -5,8 +5,8 @@ import android.animation.AnimatorListenerAdapter;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
 
 public class FlingCardListener implements View.OnTouchListener {
 
@@ -55,6 +55,7 @@ public class FlingCardListener implements View.OnTouchListener {
     private static final float BORDER_PERCENT_HEIGHT = 1f / 4f; // 纵向边界，超过代表可移除
 
     private static final int CARD_OUT_DURATION = 300; // 卡片飞出动画的时长ms
+    private static final int CARD_IN_DURATION = 350; // 卡片飞入动画的时长ms
     private static final int CARD_BACK_DURATION = 300; // 卡片恢复原位动画的时长ms
 
     public static final int SWIPE_ACTION_LEFT = 1;
@@ -234,7 +235,7 @@ public class FlingCardListener implements View.OnTouchListener {
                 } else {
                     frame.animate()
                             .setDuration(CARD_BACK_DURATION)
-                            .setInterpolator(new AccelerateDecelerateInterpolator()) // overshoot 1.5
+                            .setInterpolator(new OvershootInterpolator(0.5f)) // overshoot 1.5
                             .x(objectX)
                             .y(objectY)
                             .rotation(0)
@@ -359,6 +360,27 @@ public class FlingCardListener implements View.OnTouchListener {
             onSelected(SWIPE_ACTION_RIGHT, parentWidth, objectY, duration);
     }
 
+    public void flyIn() {
+        isAnimationRunning = true;
+        this.frame.setX(objectW / 3f);
+        this.frame.setY(-getRotationValue(objectH));
+        this.frame.setRotation(30f);
+
+        this.frame.animate()
+                .setDuration(CARD_IN_DURATION)
+                .setInterpolator(new OvershootInterpolator(0.5f))
+                .x(objectX)
+                .y(objectY)
+                .rotation(0)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        isAnimationRunning = false;
+                    }
+                }).start();
+
+    }
+
     private float getExitYByX(float exitXPoint) {
         return getLinearPoint(true, exitXPoint);
     }
@@ -414,6 +436,10 @@ public class FlingCardListener implements View.OnTouchListener {
      */
     private float getRotationWidthOffset() {
         return objectW / MAX_COS - objectW;
+    }
+
+    private float getRotationValue(float value) {
+        return value / MAX_COS;
     }
 
 
