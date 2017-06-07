@@ -290,20 +290,10 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                         rotationDegree, new FlingCardListener.FlingListener() {
 
                     @Override
-                    public void onCardExited() {
+                    public void onCardExited(int swipeAction, Object data) {
                         removeViewInLayout(mActiveCard);
                         mActiveCard = null;
-                        mFlingListener.removeFirstObjectInAdapter();
-                    }
-
-                    @Override
-                    public void leftExit(Object dataObject) {
-                        mFlingListener.onLeftCardExit(dataObject);
-                    }
-
-                    @Override
-                    public void rightExit(Object dataObject) {
-                        mFlingListener.onRightCardExit(dataObject);
+                        mFlingListener.onCardExit(swipeAction, data);
                     }
 
                     @Override
@@ -314,14 +304,12 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
                     @Override
                     public void onScroll(float progress, float scrollXProgress) {
-//                                Log.e("Log", "onScroll " + progress);
                         adjustChildrenOfUnderTopView(progress);
-                        mFlingListener.onScroll(progress, scrollXProgress);
+//                        mFlingListener.onScroll(progress, scrollXProgress);
                     }
                 });
                 // 设置是否支持左右滑
                 flingCardListener.setIsNeedSwipe(isNeedSwipe);
-
                 mActiveCard.setOnTouchListener(flingCardListener);
             }
         }
@@ -418,16 +406,13 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         void onItemClicked(MotionEvent event, View v, Object dataObject);
     }
 
-    public interface onFlingListener {
-        void removeFirstObjectInAdapter();
+    public interface onFlingListener<T> {
 
-        void onLeftCardExit(Object dataObject);
-
-        void onRightCardExit(Object dataObject);
+        void onCardExit(int swipeAction, T data);
 
         void onAdapterAboutToEmpty(int itemsInAdapter);
 
-        void onScroll(float progress, float scrollXProgress);
+//        void onScroll(float progress, float scrollXProgress);
     }
 
 

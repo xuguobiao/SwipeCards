@@ -10,5 +10,6 @@ public class VideoData {
     public String title;
     public int videoThumb;
     public String videoTitle;
+    public String indicatorText;
 
 }

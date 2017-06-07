@@ -21,8 +21,9 @@ import java.util.List;
 public class VideoAdapter extends BaseAdapter {
 
     private Context mContext;
-    private List<VideoData> mList;
-    private LayoutInflater mInflator;
+    private List<VideoData> mList; // 原始
+
+    private LayoutInflater mInflater;
 
     public VideoAdapter(Context context) {
         this(context, null);
@@ -34,7 +35,7 @@ public class VideoAdapter extends BaseAdapter {
         }
         mContext = context;
         mList = list;
-        mInflator = LayoutInflater.from(mContext);
+        mInflater = LayoutInflater.from(mContext);
     }
 
     public void addAll(List<VideoData> collection) {
@@ -62,6 +63,18 @@ public class VideoAdapter extends BaseAdapter {
         }
     }
 
+    /**
+     * 移除item后插入到末尾
+     *
+     * @param index
+     */
+    public void removeToTail(int index) {
+        if (index > -1 && index < mList.size()) {
+            mList.add(mList.remove(index));
+            notifyDataSetChanged();
+        }
+    }
+
 
     @Override
     public int getCount() {
@@ -82,7 +95,7 @@ public class VideoAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         ViewHolder holder;
         if (convertView == null) {
-            convertView = mInflator.inflate(R.layout.item_video_card, parent, false);
+            convertView = mInflater.inflate(R.layout.item_video_card, parent, false);
             holder = new ViewHolder(convertView);
             convertView.setTag(holder);
         } else {
@@ -94,7 +107,7 @@ public class VideoAdapter extends BaseAdapter {
         holder.title.setText(data.title);
         holder.video.setImageResource(data.videoThumb);
         holder.videoTitle.setText(data.videoTitle);
-        holder.indicatorText.setText((position + 1) + "/" + mList.size());
+        holder.indicatorText.setText(data.indicatorText);
 
         return convertView;
     }

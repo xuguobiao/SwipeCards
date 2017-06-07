@@ -1,7 +1,6 @@
 package com.kido.swipecards;
 
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -51,26 +50,14 @@ public class SwipeCardsActivity extends AppCompatActivity {
             }
         });
         mSwipeCardsView.setFlingListener(new SwipeCardsView.onFlingListener() {
-            @Override
-            public void removeFirstObjectInAdapter() {
-                mVideoAdapter.remove(0);
-            }
 
             @Override
-            public void onLeftCardExit(Object dataObject) {
-
-            }
-
-            @Override
-            public void onRightCardExit(Object dataObject) {
-
+            public void onCardExit(int swipeAction, Object data) {
+                mVideoAdapter.removeToTail(0);
             }
 
             @Override
             public void onAdapterAboutToEmpty(int itemsInAdapter) {
-//                if (itemsInAdapter == 3) {
-//                    loadData();
-//                }
             }
 
             @Override
@@ -85,12 +72,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
     }
 
     private void loadData() {
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mVideoAdapter.addAll(getTestData());
-            }
-        }, 500);
+        mVideoAdapter.addAll(getTestData());
     }
 
     private static final int[] VIDEO_THUMBS = {R.drawable.image_1, R.drawable.image_2, R.drawable.image_3, R.drawable.image_4,
@@ -98,13 +80,14 @@ public class SwipeCardsActivity extends AppCompatActivity {
 
     private static List<VideoData> getTestData() {
         List<VideoData> dataList = new ArrayList<>();
-        for (int i = 0; i < VIDEO_THUMBS.length; i++) {
+        for (int i = 0, z = VIDEO_THUMBS.length; i < z; i++) {
             int indicatorIndex = i + 1;
             VideoData data = new VideoData();
             data.authorIcon = R.mipmap.ic_launcher;
             data.title = "This is the title " + indicatorIndex;
             data.videoThumb = VIDEO_THUMBS[i];
             data.videoTitle = "This is the video title " + indicatorIndex;
+            data.indicatorText = (i + 1) + "/" + z;
             dataList.add(data);
         }
         return dataList;
