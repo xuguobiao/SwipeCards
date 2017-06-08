@@ -6,7 +6,7 @@
     android:layout_marginLeft="20dp"
     android:layout_marginRight="20dp"
     android:layout_marginTop="40dp"
-    android:background="@drawable/home01_bg_card"
+    android:background="@drawable/bg_item_card"
     android:orientation="vertical">
 
     <LinearLayout

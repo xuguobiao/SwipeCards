@@ -1,4 +1,4 @@
-package com.kido.swipecards.widget.flingswipe;
+package com.kido.swipecards.widget.swipecards;
 
 import android.annotation.TargetApi;
 import android.content.Context;

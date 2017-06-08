@@ -11,7 +11,7 @@ import android.widget.Toast;
 import com.kido.swipecards.adapter.VideoAdapter;
 import com.kido.swipecards.bean.VideoData;
 import com.kido.swipecards.utils.Logger;
-import com.kido.swipecards.widget.flingswipe.SwipeCardsView;
+import com.kido.swipecards.widget.swipecards.SwipeCardsView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mSwipeCardsView.gotoNextCard(Gravity.LEFT);
+                mSwipeCardsView.gotoNextCard(Gravity.BOTTOM);
             }
         });
 

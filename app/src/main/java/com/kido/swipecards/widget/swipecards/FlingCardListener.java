@@ -1,4 +1,4 @@
-package com.kido.swipecards.widget.flingswipe;
+package com.kido.swipecards.widget.swipecards;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -292,7 +292,7 @@ public class FlingCardListener implements View.OnTouchListener {
     }
 
     /**
-     * Starts a default left exit animation.
+     * Starts a default exit animation.
      */
     public void select(int gravity) {
         if (!isAnimationRunning) {
@@ -325,6 +325,7 @@ public class FlingCardListener implements View.OnTouchListener {
                     exitY = parentHeight;
                     break;
             }
+            mFlingListener.onScroll(1f);
             onSelected(gravity, exitX, exitY, duration);
         }
     }
