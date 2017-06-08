@@ -41,7 +41,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private OnItemClickListener mOnItemClickListener;
     private FlingCardListener flingCardListener;
 
-    // 支持左右滑
+    // 支持滑动移除
     public boolean isNeedSwipe = true;
 
     private int initTop;
@@ -74,23 +74,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         this.isNeedSwipe = isNeedSwipe;
     }
 
-    /**
-     * A shortcut method to set both the listeners and the adapter.
-     *
-     * @param context  The activity context which extends onSwipeListener, OnItemClickListener or both
-     * @param mAdapter The adapter you have to set.
-     */
-    public void init(final Context context, Adapter mAdapter) {
-        if (context instanceof onSwipeListener) {
-            mSwipeListener = (onSwipeListener) context;
-        } else {
-            throw new RuntimeException("Activity does not implement SwipeFlingAdapterView.onSwipeListener");
-        }
-        if (context instanceof OnItemClickListener) {
-            mOnItemClickListener = (OnItemClickListener) context;
-        }
-        setAdapter(mAdapter);
-    }
 
     @Override
     public View getSelectedView() {

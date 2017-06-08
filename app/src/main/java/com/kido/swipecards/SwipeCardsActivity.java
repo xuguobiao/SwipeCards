@@ -64,14 +64,14 @@ public class SwipeCardsActivity extends AppCompatActivity {
         mSwipeCardsView.setSwipeListener(new SwipeCardsView.onSwipeListener<VideoData>() {
 
             @Override
-            public void onCardExited(int swipeAction, VideoData data) {
-                Logger.d(TAG, "onCardExited-> swipeAction=%s, data.indicator=%s", swipeAction, data.indicatorText);
+            public void onCardExited(int gravity, VideoData data) {
+                Logger.d(TAG, "onCardExited-> gravity=%s, data.indicator=%s", gravity, data.indicatorText);
                 mVideoAdapter.moveIndexTo(0, mVideoAdapter.getCount() - 1); // 头部移到末尾，实现循环
             }
 
             @Override
             public void onPreCardRequestEnter() {
-                Logger.d(TAG, "onAdapterAboutToEmpty->");
+                Logger.d(TAG, "onPreCardRequestEnter->");
                 mVideoAdapter.moveIndexTo(mVideoAdapter.getCount() - 1, 0);// 末尾移到头部，实现回到上一张
             }
 
