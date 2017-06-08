@@ -2,6 +2,7 @@ package com.kido.swipecards;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -9,6 +10,7 @@ import android.widget.Toast;
 
 import com.kido.swipecards.adapter.VideoAdapter;
 import com.kido.swipecards.bean.VideoData;
+import com.kido.swipecards.utils.Logger;
 import com.kido.swipecards.widget.flingswipe.SwipeCardsView;
 
 import java.util.ArrayList;
@@ -20,8 +22,10 @@ import java.util.List;
 
 public class SwipeCardsActivity extends AppCompatActivity {
 
+    private static final String TAG = "SwipeCardsActivity";
+
     private SwipeCardsView mSwipeCardsView;
-    private Button preButton;
+    private Button preButton, nextButton;
 
     private VideoAdapter mVideoAdapter;
 
@@ -35,10 +39,17 @@ public class SwipeCardsActivity extends AppCompatActivity {
 
     private void bindViews() {
         preButton = (Button) findViewById(R.id.pre_button);
+        nextButton = (Button) findViewById(R.id.next_button);
         preButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 mSwipeCardsView.gotoPreCard();
+            }
+        });
+        nextButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSwipeCardsView.gotoNextCard(Gravity.LEFT);
             }
         });
 
@@ -50,21 +61,30 @@ public class SwipeCardsActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "You clicked me!", Toast.LENGTH_SHORT).show();
             }
         });
-        mSwipeCardsView.setFlingListener(new SwipeCardsView.onFlingListener() {
+        mSwipeCardsView.setSwipeListener(new SwipeCardsView.onSwipeListener<VideoData>() {
 
             @Override
-            public void onCardExited(int swipeAction, Object data) {
+            public void onCardExited(int swipeAction, VideoData data) {
+                Logger.d(TAG, "onCardExited-> swipeAction=%s, data.indicator=%s", swipeAction, data.indicatorText);
                 mVideoAdapter.moveIndexTo(0, mVideoAdapter.getCount() - 1); // 头部移到末尾，实现循环
             }
 
             @Override
-            public void onAdapterAboutToEmpty(int itemsInAdapter) {
+            public void onPreCardRequestEnter() {
+                Logger.d(TAG, "onAdapterAboutToEmpty->");
+                mVideoAdapter.moveIndexTo(mVideoAdapter.getCount() - 1, 0);// 末尾移到头部，实现回到上一张
             }
 
             @Override
-            public void onPreCardEntered() {
-                mVideoAdapter.moveIndexTo(mVideoAdapter.getCount() - 1, 0);// 末尾移到头部，实现回到上一张
+            public void onPreCardEntered(VideoData data) {
+                Logger.d(TAG, "onPreCardEntered-> data.indicator=%s", data.indicatorText);
             }
+
+            @Override
+            public void onAdapterAboutToEmpty(int itemsInAdapter) {
+                Logger.d(TAG, "onAdapterAboutToEmpty-> itemsInAdapter=%s", itemsInAdapter);
+            }
+
         });
 
         mVideoAdapter = new VideoAdapter(this);

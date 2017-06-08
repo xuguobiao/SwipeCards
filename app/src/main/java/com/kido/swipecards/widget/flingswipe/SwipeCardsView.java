@@ -16,7 +16,9 @@ import com.kido.swipecards.R;
 
 import java.util.ArrayList;
 
-
+/**
+ * @author Kido
+ */
 public class SwipeCardsView extends BaseFlingAdapterView {
 
     private ArrayList<View> cacheItems = new ArrayList<>();
@@ -29,14 +31,13 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private int maxVisibleCount = 5;
     private int minAdapterStack = 6;
     private float rotationDegree = 0f;
-    private int LAST_OBJECT_IN_STACK = 0;
+    private int lastObjectIndexInStack = 0;
 
     private Adapter mAdapter;
-    private onFlingListener mFlingListener;
+    private onSwipeListener mSwipeListener;
     private AdapterDataSetObserver mDataSetObserver;
     private boolean mInLayout = false;
     private View mActiveCard = null;
-    private View mLastCard = null;
     private OnItemClickListener mOnItemClickListener;
     private FlingCardListener flingCardListener;
 
@@ -46,7 +47,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private int initTop;
     private int initLeft;
 
-    private boolean mRequestGobackPreCard = false;
+    private boolean mRequestGotoPreCard = false;
 
     public SwipeCardsView(Context context) {
         this(context, null);
@@ -76,14 +77,14 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     /**
      * A shortcut method to set both the listeners and the adapter.
      *
-     * @param context  The activity context which extends onFlingListener, OnItemClickListener or both
+     * @param context  The activity context which extends onSwipeListener, OnItemClickListener or both
      * @param mAdapter The adapter you have to set.
      */
     public void init(final Context context, Adapter mAdapter) {
-        if (context instanceof onFlingListener) {
-            mFlingListener = (onFlingListener) context;
+        if (context instanceof onSwipeListener) {
+            mSwipeListener = (onSwipeListener) context;
         } else {
-            throw new RuntimeException("Activity does not implement SwipeFlingAdapterView.onFlingListener");
+            throw new RuntimeException("Activity does not implement SwipeFlingAdapterView.onSwipeListener");
         }
         if (context instanceof OnItemClickListener) {
             mOnItemClickListener = (OnItemClickListener) context;
@@ -118,9 +119,9 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 //            removeAllViewsInLayout();
             removeAndAddToCache(0);
         } else {
-            View topCard = getChildAt(LAST_OBJECT_IN_STACK);
-            if (!mRequestGobackPreCard && mActiveCard != null && topCard != null && topCard == mActiveCard) {
-//                removeViewsInLayout(0, LAST_OBJECT_IN_STACK);
+            View topCard = getChildAt(lastObjectIndexInStack);
+            if (!mRequestGotoPreCard && mActiveCard != null && topCard != null && topCard == mActiveCard) {
+//                removeViewsInLayout(0, lastObjectIndexInStack);
                 removeAndAddToCache(1);
                 layoutChildren(1, adapterCount);
             } else {
@@ -139,8 +140,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         }
 
         if (adapterCount < minAdapterStack) {
-            if (mFlingListener != null) {
-                mFlingListener.onAdapterAboutToEmpty(adapterCount);
+            if (mSwipeListener != null) {
+                mSwipeListener.onAdapterAboutToEmpty(adapterCount);
             }
         }
     }
@@ -164,7 +165,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
             View newUnderChild = mAdapter.getView(startingIndex, item, this);
             if (newUnderChild.getVisibility() != GONE) {
                 makeAndAddView(newUnderChild, startingIndex);
-                LAST_OBJECT_IN_STACK = startingIndex;
+                lastObjectIndexInStack = startingIndex;
             }
             startingIndex++;
         }
@@ -260,10 +261,10 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                 multiple = count - 1;
             }
 //            if (count <= maxVisibleCount - 2) {
-//                i = 0; //LAST_OBJECT_IN_STACK - (count - 1);
+//                i = 0; //lastObjectIndexInStack - (count - 1);
 //                multiple = count - 1;
 //            } else {
-//                i = LAST_OBJECT_IN_STACK - (maxVisibleCount - 2);
+//                i = lastObjectIndexInStack - (maxVisibleCount - 2);
 //                multiple = maxVisibleCount - 2;
 //            }
             float rate = Math.abs(scrollRate);
@@ -283,8 +284,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private void setTopView() {
         if (getChildCount() > 0) {
 
-            mActiveCard = getChildAt(LAST_OBJECT_IN_STACK);
-            if (mActiveCard != null && mFlingListener != null) {
+            mActiveCard = getChildAt(lastObjectIndexInStack);
+            if (mActiveCard != null && mSwipeListener != null) {
 
                 flingCardListener = new FlingCardListener(mActiveCard, mAdapter.getItem(0),
                         rotationDegree, new FlingCardListener.FlingListener() {
@@ -293,12 +294,17 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                     public void onCardExited(int swipeAction, Object data) {
                         removeViewInLayout(mActiveCard);
                         mActiveCard = null;
-                        mFlingListener.onCardExited(swipeAction, data);
+                        mSwipeListener.onCardExited(swipeAction, data);
                     }
 
                     @Override
-                    public void onPreCardEntered() {
-                        mRequestGobackPreCard = false;
+                    public void onPreCardTryEnter(boolean success, Object data) {
+                        mRequestGotoPreCard = false;
+                        if (success) {
+                            if (mSwipeListener != null) {
+                                mSwipeListener.onPreCardEntered(data);
+                            }
+                        }
                     }
 
                     @Override
@@ -310,13 +316,13 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                     @Override
                     public void onScroll(float progress) {
                         adjustChildrenOfUnderTopView(progress);
-//                        mFlingListener.onScroll(progress, scrollXProgress);
+//                        mSwipeListener.onScroll(progress, scrollXProgress);
                     }
                 });
                 // 设置是否支持左右滑
                 flingCardListener.setIsNeedSwipe(isNeedSwipe);
                 mActiveCard.setOnTouchListener(flingCardListener);
-                if (mRequestGobackPreCard) {
+                if (mRequestGotoPreCard) {
                     flingCardListener.fadeFlyIn();
                 }
             }
@@ -394,9 +400,9 @@ public class SwipeCardsView extends BaseFlingAdapterView {
      * 回到上一张
      */
     public void gotoPreCard() {
-        if (!mRequestGobackPreCard && mFlingListener != null) {
-            mRequestGobackPreCard = true;
-            mFlingListener.onPreCardEntered(); // TODO: 2017/6/8 初衷是飞入之后再回调，这里临时解决方案是先回调更新数据后再制造假飞入
+        if (!mRequestGotoPreCard && mSwipeListener != null) {
+            mRequestGotoPreCard = true;
+            mSwipeListener.onPreCardRequestEnter(); // TODO: 2017/6/8 初衷是飞入之后再回调，这里临时解决方案是先回调更新数据后再制造假飞入
         }
     }
 
@@ -421,8 +427,8 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         }
     }
 
-    public void setFlingListener(onFlingListener onFlingListener) {
-        this.mFlingListener = onFlingListener;
+    public void setSwipeListener(onSwipeListener onSwipeListener) {
+        this.mSwipeListener = onSwipeListener;
     }
 
     public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
@@ -454,13 +460,15 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         void onItemClicked(MotionEvent event, View v, Object dataObject);
     }
 
-    public interface onFlingListener<T> {
+    public interface onSwipeListener<T> {
 
         void onCardExited(int swipeAction, T data);
 
         void onAdapterAboutToEmpty(int itemsInAdapter);
 
-        void onPreCardEntered();
+        void onPreCardRequestEnter();
+
+        void onPreCardEntered(T data);
 
 //        void onScroll(float progress, float scrollXProgress);
     }

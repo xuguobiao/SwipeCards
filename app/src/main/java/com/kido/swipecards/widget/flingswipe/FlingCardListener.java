@@ -333,6 +333,10 @@ public class FlingCardListener implements View.OnTouchListener {
      * 先让原来位置的View定位到屏幕外，然后制造飞进来的假象
      */
     public void fadeFlyIn() {
+        if (isAnimationRunning) {
+            mFlingListener.onPreCardTryEnter(false, dataObject);
+            return;
+        }
         isAnimationRunning = true;
         this.frame.setX(objectW / 3f);
         this.frame.setY(-getRotationValue(objectH));
@@ -350,7 +354,7 @@ public class FlingCardListener implements View.OnTouchListener {
                     public void onAnimationEnd(Animator animation) {
                         isAnimationRunning = false;
                         mFlingListener.onScroll(0f); //
-                        mFlingListener.onPreCardEntered();
+                        mFlingListener.onPreCardTryEnter(true, dataObject);
 
                     }
                 }).start();
@@ -427,7 +431,7 @@ public class FlingCardListener implements View.OnTouchListener {
     protected interface FlingListener {
         void onCardExited(int swipeAction, Object dataObject);
 
-        void onPreCardEntered();
+        void onPreCardTryEnter(boolean success, Object dataObject);
 
         void onClick(MotionEvent event, View v, Object dataObject);
 
