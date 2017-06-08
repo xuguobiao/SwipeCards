@@ -293,7 +293,12 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                     public void onCardExited(int swipeAction, Object data) {
                         removeViewInLayout(mActiveCard);
                         mActiveCard = null;
-                        mFlingListener.onCardExit(swipeAction, data);
+                        mFlingListener.onCardExited(swipeAction, data);
+                    }
+
+                    @Override
+                    public void onPreCardEntered() {
+                        mRequestGobackPreCard = false;
                     }
 
                     @Override
@@ -303,7 +308,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                     }
 
                     @Override
-                    public void onScroll(float progress, float scrollXProgress) {
+                    public void onScroll(float progress) {
                         adjustChildrenOfUnderTopView(progress);
 //                        mFlingListener.onScroll(progress, scrollXProgress);
                     }
@@ -311,58 +316,88 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                 // 设置是否支持左右滑
                 flingCardListener.setIsNeedSwipe(isNeedSwipe);
                 mActiveCard.setOnTouchListener(flingCardListener);
-                flingCardListener.flyIn();
-                mRequestGobackPreCard = false;
+                if (mRequestGobackPreCard) {
+                    flingCardListener.fadeFlyIn();
+                }
             }
         }
     }
 
-    public FlingCardListener getTopCardListener() throws NullPointerException {
-        if (flingCardListener == null) {
-            throw new NullPointerException("flingCardListener is null");
-        }
+    public FlingCardListener getTopCardListener() {
         return flingCardListener;
     }
 
-    public void setMaxVisible(int MAX_VISIBLE) {
-        this.maxVisibleCount = MAX_VISIBLE;
-    }
-
-    public void setMinStackInAdapter(int MIN_ADAPTER_STACK) {
-        this.minAdapterStack = MIN_ADAPTER_STACK;
+    /**
+     * y_offset_step 定义的是卡片之间在y轴方向上的偏移量。
+     * <p>
+     * 举个例子，可见的卡片有3个，如果步长是20dp，从前往后看，卡片y轴坐标会依次增加20dp，表现上就是后面一张卡片底部有20dp会露出来；如果值是负的，如 -20dp，那么表现则相反。
+     * <p>
+     * 如果不需要对卡片进行y轴方向上的偏移量处理，不设置这个属性或者设置为0dp就可以了。
+     *
+     * @param yOffsetStep in pixels
+     */
+    public void setYOffsetStep(int yOffsetStep) {
+        this.yOffsetStep = yOffsetStep;
     }
 
     /**
-     * click to swipe left
+     * scale_offset_step 定义的取值范围是0-1，所以scale的步长也得在这个范围之内。
+     * <p>
+     * 举个例子，可见的卡片有3个，如果步长是0.08，那么最前面的scale是1，后面一点的是0.92，最后面的是0.84；值得注意的是 x 和 y同时被缩放了(1 - scaleStep*index)。
+     * <p>
+     * 如果不需要对卡片进行缩放处理，不设置这个属性或者设置为0就可以了
+     *
+     * @param scaleOffsetStep
      */
-    public void swipeLeft() {
-        getTopCardListener().selectLeft();
-    }
-
-    public void swipeLeft(int duration) {
-        getTopCardListener().selectLeft(duration);
+    public void setScaleOffsetStep(float scaleOffsetStep) {
+        this.scaleOffsetStep = scaleOffsetStep;
     }
 
     /**
-     * click to swipe right
+     * y_offset_step 定义的是 最大可见的卡片数。
+     * <p>
+     * 举个例子，假设定义为5，则正常状态重合状态下能看到的卡片数是4，当触摸移动过程中可以看到 底下4个 + 触摸中的1个 = 5个。
+     *
+     * @param count
      */
-    public void swipeRight() {
-        getTopCardListener().selectRight();
+    public void setMaxVisible(int count) {
+        this.maxVisibleCount = count;
     }
 
-    public void swipeRight(int duration) {
-        getTopCardListener().selectRight(duration);
+    /**
+     * min_adapter_stack 定义的是触发数据快空了的回调。
+     * <p>
+     * 举个例子，若设置为6，则当adapter数据减少到6的时候，会触发 onAdapterAboutToEmpty 回调
+     *
+     * @param count
+     */
+    public void setMinStackInAdapter(int count) {
+        this.minAdapterStack = count;
     }
 
-    public void gobackPreCard() {
-        if (mFlingListener != null) {
-            mRequestGobackPreCard = true;
-            mFlingListener.onRequestGoback();
+    public void gotoNextCard() {
+        gotoNextCard(Gravity.BOTTOM);
+    }
+
+    /**
+     * 进入下一张
+     *
+     * @param gravity 对应Gravity.LEFT, Gravity.Right, Gravity.Top, Gravity.Bottom，决定滑出的方向
+     */
+    public void gotoNextCard(int gravity) {
+        if (getTopCardListener() != null) {
+            getTopCardListener().select(gravity);
         }
     }
 
-    public void flyIn() {
-        getTopCardListener().flyIn();
+    /**
+     * 回到上一张
+     */
+    public void gotoPreCard() {
+        if (!mRequestGobackPreCard && mFlingListener != null) {
+            mRequestGobackPreCard = true;
+            mFlingListener.onPreCardEntered(); // TODO: 2017/6/8 初衷是飞入之后再回调，这里临时解决方案是先回调更新数据后再制造假飞入
+        }
     }
 
     @Override
@@ -421,11 +456,11 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
     public interface onFlingListener<T> {
 
-        void onCardExit(int swipeAction, T data);
+        void onCardExited(int swipeAction, T data);
 
         void onAdapterAboutToEmpty(int itemsInAdapter);
 
-        void onRequestGoback();
+        void onPreCardEntered();
 
 //        void onScroll(float progress, float scrollXProgress);
     }

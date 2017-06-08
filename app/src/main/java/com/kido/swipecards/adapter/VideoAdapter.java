@@ -70,25 +70,14 @@ public class VideoAdapter extends BaseAdapter {
     }
 
     /**
-     * 移除item后插入到末尾
+     * 移动元素在其它位置
      *
-     * @param index
+     * @param fromIndex
+     * @param toIndex
      */
-    public void moveToTail(int index) {
-        if (index > -1 && index < mList.size()) {
-            mList.add(mList.remove(index));
-            notifyDataSetChanged();
-        }
-    }
-
-    /**
-     * 移除item后插入到头部
-     *
-     * @param index
-     */
-    public void moveToHead(int index) {
-        if (index > -1 && index < mList.size()) {
-            mList.add(0, mList.remove(index));
+    public void moveIndexTo(int fromIndex, int toIndex) {
+        if (fromIndex > -1 && fromIndex < mList.size() && toIndex > -1 && toIndex < mList.size()) {
+            mList.add(toIndex, mList.remove(fromIndex));
             notifyDataSetChanged();
         }
     }

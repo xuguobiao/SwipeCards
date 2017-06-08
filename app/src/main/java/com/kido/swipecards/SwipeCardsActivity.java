@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.kido.swipecards.adapter.VideoAdapter;
 import com.kido.swipecards.bean.VideoData;
@@ -37,8 +38,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
         preButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                mSwipeCardsView.swipeLeft(500);
-                mSwipeCardsView.gobackPreCard();
+                mSwipeCardsView.gotoPreCard();
             }
         });
 
@@ -47,14 +47,14 @@ public class SwipeCardsActivity extends AppCompatActivity {
         mSwipeCardsView.setOnItemClickListener(new SwipeCardsView.OnItemClickListener() {
             @Override
             public void onItemClicked(MotionEvent event, View v, Object dataObject) {
-
+                Toast.makeText(getApplicationContext(), "You clicked me!", Toast.LENGTH_SHORT).show();
             }
         });
         mSwipeCardsView.setFlingListener(new SwipeCardsView.onFlingListener() {
 
             @Override
-            public void onCardExit(int swipeAction, Object data) {
-                mVideoAdapter.moveToTail(0);
+            public void onCardExited(int swipeAction, Object data) {
+                mVideoAdapter.moveIndexTo(0, mVideoAdapter.getCount() - 1); // 头部移到末尾，实现循环
             }
 
             @Override
@@ -62,8 +62,8 @@ public class SwipeCardsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onRequestGoback() {
-                mVideoAdapter.moveToHead(mVideoAdapter.getCount() - 1);
+            public void onPreCardEntered() {
+                mVideoAdapter.moveIndexTo(mVideoAdapter.getCount() - 1, 0);// 末尾移到头部，实现回到上一张
             }
         });
 

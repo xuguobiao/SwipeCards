@@ -2,6 +2,7 @@ package com.kido.swipecards.widget.flingswipe;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,11 +58,6 @@ public class FlingCardListener implements View.OnTouchListener {
     private static final int CARD_OUT_DURATION = 300; // 卡片飞出动画的时长ms
     private static final int CARD_IN_DURATION = 350; // 卡片飞入动画的时长ms
     private static final int CARD_BACK_DURATION = 300; // 卡片恢复原位动画的时长ms
-
-    public static final int SWIPE_ACTION_LEFT = 1;
-    public static final int SWIPE_ACTION_RIGHT = 2;
-    public static final int SWIPE_ACTION_TOP = 3;
-    public static final int SWIPE_ACTION_BOTTOM = 4;
 
     public FlingCardListener(View frame, Object itemAtPosition, float rotation_degrees, FlingListener flingListener) {
         super();
@@ -159,7 +155,7 @@ public class FlingCardListener implements View.OnTouchListener {
                         frame.setX(aPosX);
                         frame.setY(aPosY);
                         frame.setRotation(rotation);
-                        mFlingListener.onScroll(getScrollProgress(), getScrollXProgressPercent());
+                        mFlingListener.onScroll(getScrollProgress());
                     }
                     break;
 
@@ -189,44 +185,21 @@ public class FlingCardListener implements View.OnTouchListener {
         return Math.min(dis, 400f) / 400f;
     }
 
-    private float getScrollXProgressPercent() {
-        if (movedBeyondLeftBorder()) {
-            return -1f;
-        } else if (movedBeyondRightBorder()) {
-            return 1f;
-        } else {
-            float zeroToOneValue = (aPosX + halfWidth - leftBorder()) / (rightBorder() - leftBorder());
-            return zeroToOneValue * 2f - 1f;
-        }
-    }
-
-    private float getScrollYProgressPercent() {
-        if (movedBeyondTopBorder()) {
-            return -1f;
-        } else if (movedBeyondBottomBorder()) {
-            return 1f;
-        } else {
-            float zeroToOneValue = (aPosY + halfHeight - topBorder()) / (bottomBorder() - topBorder());
-            return zeroToOneValue * 2f - 1f;
-        }
-    }
-
-
     private boolean resetCardViewOnStack(MotionEvent event) {
         if (isNeedSwipe) {
             final int duration = CARD_OUT_DURATION;
             if (movedBeyondLeftBorder()) { // Left Swipe
-                onSelected(SWIPE_ACTION_LEFT, -objectW, getExitYByX(-objectW), duration);
-                mFlingListener.onScroll(1f, -1.0f);
+                onSelected(Gravity.LEFT, -objectW, getExitYByX(-objectW), duration);
+                mFlingListener.onScroll(1f);
             } else if (movedBeyondRightBorder()) { // Right Swipe
-                onSelected(SWIPE_ACTION_RIGHT, parentWidth, getExitYByX(parentWidth), duration);
-                mFlingListener.onScroll(1f, 1.0f);
+                onSelected(Gravity.RIGHT, parentWidth, getExitYByX(parentWidth), duration);
+                mFlingListener.onScroll(1f);
             } else if (movedBeyondTopBorder()) { // Top Swipe
-                onSelected(SWIPE_ACTION_TOP, getExitXByY(-objectH), -objectH, duration);
-                mFlingListener.onScroll(1f, -1.0f);
+                onSelected(Gravity.TOP, getExitXByY(-objectH), -objectH, duration);
+                mFlingListener.onScroll(1f);
             } else if (movedBeyondBottomBorder()) { // Top Swipe
-                onSelected(SWIPE_ACTION_BOTTOM, getExitXByY(parentHeight), parentHeight, duration);
-                mFlingListener.onScroll(1f, -1.0f);
+                onSelected(Gravity.BOTTOM, getExitXByY(parentHeight), parentHeight, duration);
+                mFlingListener.onScroll(1f);
             } else {
                 float absMoveXDistance = Math.abs(aPosX - objectX);
                 float absMoveYDistance = Math.abs(aPosY - objectY);
@@ -235,7 +208,7 @@ public class FlingCardListener implements View.OnTouchListener {
                 } else {
                     frame.animate()
                             .setDuration(CARD_BACK_DURATION)
-                            .setInterpolator(new OvershootInterpolator(0.5f)) // overshoot 1.5
+                            .setInterpolator(new OvershootInterpolator(0.8f)) // overshoot 1.5
                             .x(objectX)
                             .y(objectY)
                             .rotation(0)
@@ -260,7 +233,7 @@ public class FlingCardListener implements View.OnTouchListener {
     private Runnable animRun = new Runnable() {
         @Override
         public void run() {
-            mFlingListener.onScroll(scale, 0);
+            mFlingListener.onScroll(scale);
             if (scale > 0 && !resetAnimCanceled) {
                 scale = scale - 0.1f;
                 if (scale < 0)
@@ -271,40 +244,30 @@ public class FlingCardListener implements View.OnTouchListener {
     };
 
     private boolean movedBeyondLeftBorder() {
-        return aPosX + halfWidth < leftBorder();
+        return aPosX - objectX < -maxDeltaX();
     }
 
     private boolean movedBeyondRightBorder() {
-        return aPosX + halfWidth > rightBorder();
+        return aPosX - objectX > maxDeltaX();
     }
 
     private boolean movedBeyondTopBorder() {
-        return aPosY + halfHeight < topBorder();
+        return aPosY - objectY < -maxDeltaY();
     }
 
     private boolean movedBeyondBottomBorder() {
-        return aPosY + halfHeight > bottomBorder();
+        return aPosY - objectY > maxDeltaY();
     }
 
-
-    public float leftBorder() {
+    public float maxDeltaX() {
         return objectW * BORDER_PERCENT_WIDTH;
     }
 
-    public float rightBorder() {
-        return objectW * (1 - BORDER_PERCENT_WIDTH);
-    }
-
-    public float topBorder() {
+    public float maxDeltaY() {
         return objectH * BORDER_PERCENT_HEIGHT;
     }
 
-    public float bottomBorder() {
-        return objectH * (1 - BORDER_PERCENT_HEIGHT);
-    }
-
-
-    public void onSelected(final int swipeAction, float exitX, float exitY, long duration) {
+    public void onSelected(final int gravity, float exitX, float exitY, long duration) {
         isAnimationRunning = true;
 //        float exitX;
 //        if (isLeft) {
@@ -322,7 +285,7 @@ public class FlingCardListener implements View.OnTouchListener {
                 .setListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        mFlingListener.onCardExited(swipeAction, dataObject);
+                        mFlingListener.onCardExited(gravity, dataObject);
                         isAnimationRunning = false;
                     }
                 }).start();
@@ -331,40 +294,50 @@ public class FlingCardListener implements View.OnTouchListener {
     /**
      * Starts a default left exit animation.
      */
-    public void selectLeft() {
-        if (!isAnimationRunning)
-            selectLeft(CARD_OUT_DURATION);
+    public void select(int gravity) {
+        if (!isAnimationRunning) {
+            select(gravity, CARD_OUT_DURATION);
+        }
     }
 
     /**
-     * Starts a default left exit animation.
+     * Starts a default exit animation.
      */
-    public void selectLeft(long duration) {
-        if (!isAnimationRunning)
-            onSelected(SWIPE_ACTION_LEFT, -objectW, objectY, duration);
+    public void select(int gravity, long duration) {
+        if (!isAnimationRunning) {
+            float exitX, exitY;
+            switch (gravity) {
+                case Gravity.LEFT:
+                    exitX = -objectW;
+                    exitY = objectY;
+                    break;
+                case Gravity.RIGHT:
+                    exitX = parentWidth;
+                    exitY = objectY;
+                    break;
+                case Gravity.TOP:
+                    exitX = objectX;
+                    exitY = -objectH;
+                    break;
+                case Gravity.BOTTOM:
+                default:
+                    exitX = objectX;
+                    exitY = parentHeight;
+                    break;
+            }
+            onSelected(gravity, exitX, exitY, duration);
+        }
     }
 
     /**
-     * Starts a default right exit animation.
+     * 先让原来位置的View定位到屏幕外，然后制造飞进来的假象
      */
-    public void selectRight() {
-        if (!isAnimationRunning)
-            selectRight(CARD_OUT_DURATION);
-    }
-
-    /**
-     * Starts a default right exit animation.
-     */
-    public void selectRight(long duration) {
-        if (!isAnimationRunning)
-            onSelected(SWIPE_ACTION_RIGHT, parentWidth, objectY, duration);
-    }
-
-    public void flyIn() {
+    public void fadeFlyIn() {
         isAnimationRunning = true;
         this.frame.setX(objectW / 3f);
         this.frame.setY(-getRotationValue(objectH));
         this.frame.setRotation(30f);
+        mFlingListener.onScroll(1f); //
 
         this.frame.animate()
                 .setDuration(CARD_IN_DURATION)
@@ -376,6 +349,9 @@ public class FlingCardListener implements View.OnTouchListener {
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         isAnimationRunning = false;
+                        mFlingListener.onScroll(0f); //
+                        mFlingListener.onPreCardEntered();
+
                     }
                 }).start();
 
@@ -451,9 +427,11 @@ public class FlingCardListener implements View.OnTouchListener {
     protected interface FlingListener {
         void onCardExited(int swipeAction, Object dataObject);
 
+        void onPreCardEntered();
+
         void onClick(MotionEvent event, View v, Object dataObject);
 
-        void onScroll(float progress, float scrollXProgress);
+        void onScroll(float progress);
     }
 
 
