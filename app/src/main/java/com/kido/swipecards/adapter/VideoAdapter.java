@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.kido.swipecards.R;
 import com.kido.swipecards.bean.VideoData;
@@ -119,6 +120,12 @@ public class VideoAdapter extends BaseAdapter {
         }
         holder.videoTitle.setText(data.videoTitle);
         holder.indicatorText.setText(data.indicatorText);
+        holder.videoTitle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(v.getContext(), "click the title.", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         return convertView;
     }

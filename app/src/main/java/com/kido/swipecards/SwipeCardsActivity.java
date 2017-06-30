@@ -2,16 +2,12 @@ package com.kido.swipecards;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
 import com.kido.swipecards.adapter.VideoAdapter;
 import com.kido.swipecards.bean.VideoData;
-import com.kido.swipecards.utils.Logger;
-import com.kido.swipecards.widget.swipecards.SwipeCardsView;
+import com.kido.swipecards.widget.swipeadapterview.SwipeAdapterView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +20,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
 
     private static final String TAG = "SwipeCardsActivity";
 
-    private SwipeCardsView mSwipeCardsView;
+    private SwipeAdapterView mSwipeCardsView;
     private Button preButton, nextButton;
 
     private VideoAdapter mVideoAdapter;
@@ -49,42 +45,17 @@ public class SwipeCardsActivity extends AppCompatActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mSwipeCardsView.gotoNextCard(Gravity.BOTTOM);
+                mSwipeCardsView.gotoNextCard();
             }
         });
 
-        mSwipeCardsView = (SwipeCardsView) findViewById(R.id.swipe_view);
+        mSwipeCardsView = (SwipeAdapterView) findViewById(R.id.swipe_view);
         mSwipeCardsView.setIsNeedSwipe(true);
-        mSwipeCardsView.setOnItemClickListener(new SwipeCardsView.OnItemClickListener() {
+        mSwipeCardsView.setOnSwipeListener(new SwipeAdapterView.onSwipeListener() {
             @Override
-            public void onItemClicked(MotionEvent event, View v, Object dataObject) {
-                Toast.makeText(getApplicationContext(), "You clicked me!", Toast.LENGTH_SHORT).show();
-            }
-        });
-        mSwipeCardsView.setSwipeListener(new SwipeCardsView.onSwipeListener<VideoData>() {
+            public void onCardSelected(int index) {
 
-            @Override
-            public void onCardExited(int gravity, VideoData data) {
-                Logger.d(TAG, "onCardExited-> gravity=%s, data.indicator=%s", gravity, data.indicatorText);
-                mVideoAdapter.moveIndexTo(0, mVideoAdapter.getCount() - 1); // 头部移到末尾，实现循环
             }
-
-            @Override
-            public void onPreCardRequestEnter() {
-                Logger.d(TAG, "onPreCardRequestEnter->");
-                mVideoAdapter.moveIndexTo(mVideoAdapter.getCount() - 1, 0);// 末尾移到头部，实现回到上一张
-            }
-
-            @Override
-            public void onPreCardEntered(VideoData data) {
-                Logger.d(TAG, "onPreCardEntered-> data.indicator=%s", data.indicatorText);
-            }
-
-            @Override
-            public void onAdapterAboutToEmpty(int itemsInAdapter) {
-                Logger.d(TAG, "onAdapterAboutToEmpty-> itemsInAdapter=%s", itemsInAdapter);
-            }
-
         });
 
         mVideoAdapter = new VideoAdapter(this);

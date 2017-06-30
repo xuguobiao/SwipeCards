@@ -24,7 +24,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private ArrayList<View> cacheItems = new ArrayList<>();
 
     //缩放层叠效果
-    private int yOffsetStep = 0; // view叠加垂直偏移量的步长
+    private int yOffsetStep = 28; // view叠加垂直偏移量的步长
     private float scaleOffsetStep = 0.06f; // view叠加缩放的步长
     //缩放层叠效果
 
@@ -47,7 +47,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private int initTop;
     private int initLeft;
 
-    private boolean mRequestGotoPreCard = false;
+//    private boolean mRequestGotoPreCard = false;
 
     public SwipeCardsView(Context context) {
         this(context, null);
@@ -103,7 +103,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
             removeAndAddToCache(0);
         } else {
             View topCard = getChildAt(lastObjectIndexInStack);
-            if (!mRequestGotoPreCard && mActiveCard != null && topCard != null && topCard == mActiveCard) {
+            if (mActiveCard != null && topCard != null && topCard == mActiveCard) {
 //                removeViewsInLayout(0, lastObjectIndexInStack);
                 removeAndAddToCache(1);
                 layoutChildren(1, adapterCount);
@@ -133,6 +133,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
         View view;
         for (int i = 0; i < getChildCount() - remain; ) {
             view = getChildAt(i);
+            view.setOnTouchListener(null);
             removeViewInLayout(view);
             cacheItems.add(view);
         }
@@ -158,7 +159,7 @@ public class SwipeCardsView extends BaseFlingAdapterView {
     private void makeAndAddView(View child, int index) {
 
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) child.getLayoutParams();
-        addViewInLayout(child, 0, lp, true);
+        addViewInLayout(child, 0, lp, true); // 顺序插入底部（0 index）
 
         final boolean needToMeasure = child.isLayoutRequested();
         if (needToMeasure) {
@@ -282,12 +283,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
 
                     @Override
                     public void onPreCardTryEnter(boolean success, Object data) {
-                        mRequestGotoPreCard = false;
-                        if (success) {
-                            if (mSwipeListener != null) {
-                                mSwipeListener.onPreCardEntered(data);
-                            }
-                        }
                     }
 
                     @Override
@@ -305,9 +300,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
                 // 设置是否支持左右滑
                 flingCardListener.setIsNeedSwipe(isNeedSwipe);
                 mActiveCard.setOnTouchListener(flingCardListener);
-                if (mRequestGotoPreCard) {
-                    flingCardListener.fadeFlyIn();
-                }
             }
         }
     }
@@ -383,10 +375,6 @@ public class SwipeCardsView extends BaseFlingAdapterView {
      * 回到上一张
      */
     public void gotoPreCard() {
-        if (!mRequestGotoPreCard && mSwipeListener != null) {
-            mRequestGotoPreCard = true;
-            mSwipeListener.onPreCardRequestEnter(); // TODO: 2017/6/8 初衷是飞入之后再回调，这里临时解决方案是先回调更新数据后再制造假飞入
-        }
     }
 
     @Override

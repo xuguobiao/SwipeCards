@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:swipe="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.kido.swipecards.widget.swipecards.SwipeCardsView
+    <com.kido.swipecards.widget.swipeadapterview.SwipeAdapterView
         android:id="@+id/swipe_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        swipe:max_visible="5"
-        swipe:min_adapter_stack="5"
-        swipe:scale_offset_step="0.06"
-        swipe:y_offset_step="16dp" />
+        android:layout_height="match_parent" />
 
     <Button
         android:id="@+id/pre_button"
