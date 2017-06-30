@@ -7,6 +7,7 @@ import android.widget.Button;
 
 import com.kido.swipecards.adapter.VideoAdapter;
 import com.kido.swipecards.bean.VideoData;
+import com.kido.swipecards.utils.Logger;
 import com.kido.swipecards.widget.swipeadapterview.SwipeAdapterView;
 
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
     private static final String TAG = "SwipeCardsActivity";
 
     private SwipeAdapterView mSwipeCardsView;
-    private Button preButton, nextButton;
+    private Button preButton, nextButton, loadButton;
 
     private VideoAdapter mVideoAdapter;
 
@@ -36,6 +37,7 @@ public class SwipeCardsActivity extends AppCompatActivity {
     private void bindViews() {
         preButton = (Button) findViewById(R.id.pre_button);
         nextButton = (Button) findViewById(R.id.next_button);
+        loadButton = (Button) findViewById(R.id.load_button);
         preButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -48,13 +50,19 @@ public class SwipeCardsActivity extends AppCompatActivity {
                 mSwipeCardsView.gotoNextCard();
             }
         });
+        loadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                loadData();
+            }
+        });
 
         mSwipeCardsView = (SwipeAdapterView) findViewById(R.id.swipe_view);
         mSwipeCardsView.setIsNeedSwipe(true);
         mSwipeCardsView.setOnSwipeListener(new SwipeAdapterView.onSwipeListener() {
             @Override
             public void onCardSelected(int index) {
-
+                Logger.e("kido", "onCardSelected->" + index);
             }
         });
 

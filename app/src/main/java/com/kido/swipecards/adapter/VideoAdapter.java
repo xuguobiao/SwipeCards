@@ -119,7 +119,7 @@ public class VideoAdapter extends BaseAdapter {
             holder.video.setImageResource(data.videoThumb);
         }
         holder.videoTitle.setText(data.videoTitle);
-        holder.indicatorText.setText(data.indicatorText);
+        holder.indicatorText.setText((position+1) + "/" + mList.size());
         holder.videoTitle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

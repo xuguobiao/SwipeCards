@@ -23,29 +23,30 @@ import com.kido.swipecards.widget.swipecards.LinearRegression;
 import java.util.ArrayList;
 
 /**
- * @author payge
- *         通过ViewDragHelper实现拖拽滑动
+ * 卡片滑动效果
+ *
+ * @author Kido
  */
 public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
-    private ArrayList<View> cache = new ArrayList<>();
+    private ArrayList<View> mViewCache = new ArrayList<>();
 
     //缩放层叠效果
     private int mYOffsetStep = 70; // view叠加垂直偏移量的步长
     private float mScaleStep = 0.08f; // view叠加缩放的步长
 
-    private int mMaxVisibleCount = 4; // 值建议最小为4
-    private int LAST_VIEW_IN_STACK = 0;
+    private int mMaxVisibleCount = 4; // 最大可视个数
+    private int mLastViewIndexInStack = 0;
 
     private BaseAdapter mAdapter;
-    private onSwipeListener mFlingListener;
+    private onSwipeListener mOnSwipeListener;
     private AdapterDataSetObserver mDataSetObserver;
     private boolean mInLayout = false;
     private View mActiveCard = null;
     private OnItemClickListener mOnItemClickListener;
 
     // 支持左右滑
-    public boolean isNeedSwipe = true;
+    public boolean mIsNeedSwipe = true;
 
     private int mInitObjectY;
     private int mInitObjectX;
@@ -58,7 +59,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     private int mCurrentIndex = 0;
     private boolean mRequestingPreCard = false;
     private boolean mIsAnimating = false;
-    private float MAX_COS = (float) Math.cos(Math.toRadians(45));
+    private static final float MAX_COS = (float) Math.cos(Math.toRadians(45));
 
     public SwipeAdapterView(Context context) {
         this(context, null);
@@ -71,17 +72,17 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         mDetector = new GestureDetector(context, new ScrollDetector());
     }
 
-
+    /**
+     * 是否支持卡片手势滑动
+     *
+     * @param isNeedSwipe
+     */
     public void setIsNeedSwipe(boolean isNeedSwipe) {
-        this.isNeedSwipe = isNeedSwipe;
+        this.mIsNeedSwipe = isNeedSwipe;
     }
 
     /**
      * y_offset_step 定义的是卡片之间在y轴方向上的偏移量。
-     * <p>
-     * 举个例子，可见的卡片有3个，如果步长是20dp，从前往后看，卡片y轴坐标会依次增加20dp，表现上就是后面一张卡片底部有20dp会露出来；如果值是负的，如 -20dp，那么表现则相反。
-     * <p>
-     * 如果不需要对卡片进行y轴方向上的偏移量处理，不设置这个属性或者设置为0dp就可以了。
      *
      * @param yOffsetStep in pixels
      */
@@ -91,10 +92,6 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
     /**
      * scale_offset_step 定义的取值范围是0-1，所以scale的步长也得在这个范围之内。
-     * <p>
-     * 举个例子，可见的卡片有3个，如果步长是0.08，那么最前面的scale是1，后面一点的是0.92，最后面的是0.84；值得注意的是 x 和 y同时被缩放了(1 - scaleStep*index)。
-     * <p>
-     * 如果不需要对卡片进行缩放处理，不设置这个属性或者设置为0就可以了
      *
      * @param scaleOffsetStep
      */
@@ -103,9 +100,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     }
 
     /**
-     * y_offset_step 定义的是 最大可见的卡片数。
-     * <p>
-     * 举个例子，假设定义为5，则正常状态重合状态下能看到的卡片数是4，当触摸移动过程中可以看到 底下4个 + 触摸中的1个 = 5个。
+     * MaxVisible 定义的是 最大可见的卡片数。
      *
      * @param count
      */
@@ -119,7 +114,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
                 || mActiveCard == null) {
             return false;
         }
-        isSwipeRun = true;
+        mIsSwipeRun = true;
         mViewDragHelper.smoothSlideViewTo(mActiveCard, getWidth(), getHeight());
         invalidate();
         return true;
@@ -135,6 +130,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         }
         mCurrentIndex = mCurrentIndex - 1;
         mRequestingPreCard = true;
+        mActiveCard = null;
         getAdapter().notifyDataSetChanged();
         return true;
     }
@@ -194,20 +190,22 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
             mIsAnimating = true;
             ViewCompat.postInvalidateOnAnimation(this);
         } else {
-            if (isSwipeRun) {
-                isSwipeRun = false;
+            if (mIsSwipeRun) {
+                mIsSwipeRun = false;
                 adjustChildrenOfUnderTopView(1f);
 
                 mActiveCard = null;
                 mCurrentIndex++;
                 getAdapter().notifyDataSetChanged();
-                if (mFlingListener != null) {
-                    mFlingListener.onCardSelected(mCurrentIndex);
+                if (mOnSwipeListener != null) {
+                    mOnSwipeListener.onCardSelected(mCurrentIndex);
                 }
             }
             mIsAnimating = false;
-            objectX = 0;
-            objectY = 0;
+            mObjectX = 0;
+            mObjectY = 0;
+            mPosX = 0;
+            mPosY = 0;
         }
     }
 
@@ -217,13 +215,13 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
             mViewDragHelper.processTouchEvent(ev);
         }
-        return b && mDetector.onTouchEvent(ev) && isNeedSwipe;
+        return b && mDetector.onTouchEvent(ev) && mIsNeedSwipe;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         mViewDragHelper.processTouchEvent(event);
-        return isNeedSwipe;
+        return mIsNeedSwipe;
     }
 
     @Override
@@ -251,9 +249,9 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 //            removeAllViewsInLayout();
             removeViewToCache(0);
         } else {
-            View topCard = getChildAt(LAST_VIEW_IN_STACK);
+            View topCard = getChildAt(mLastViewIndexInStack);
             if (mActiveCard != null && topCard != null && topCard == mActiveCard && !mRequestingPreCard) {
-//                removeViewsInLayout(0, LAST_VIEW_IN_STACK);
+//                removeViewsInLayout(0, mLastViewIndexInStack);
                 removeViewToCache(1);
                 layoutChildren(1, validCount);
             } else {
@@ -281,21 +279,21 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         for (int i = 0; i < getChildCount() - saveCount; ) {
             child = getChildAt(i);
             removeViewInLayout(child);
-            cache.add(child);
+            mViewCache.add(child);
         }
     }
 
     private void layoutChildren(int startingIndex, int adapterCount) {
         while (startingIndex < Math.min(adapterCount, mMaxVisibleCount)) {
             View cacheView = null;
-            if (cache.size() > 0) {
-                cacheView = cache.get(0);
-                cache.remove(cacheView);
+            if (mViewCache.size() > 0) {
+                cacheView = mViewCache.get(0);
+                mViewCache.remove(cacheView);
             }
             View newUnderChild = mAdapter.getView(mCurrentIndex + startingIndex, cacheView, this);
             if (newUnderChild.getVisibility() != GONE) {
                 makeAndAddView(newUnderChild, startingIndex);
-                LAST_VIEW_IN_STACK = startingIndex;
+                mLastViewIndexInStack = startingIndex;
             }
             startingIndex++;
         }
@@ -389,13 +387,6 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
                 i = 0;
                 multiple = count - 1;
             }
-//            if (count <= maxVisibleCount - 2) {
-//                i = 0; //lastObjectIndexInStack - (count - 1);
-//                multiple = count - 1;
-//            } else {
-//                i = lastObjectIndexInStack - (maxVisibleCount - 2);
-//                multiple = maxVisibleCount - 2;
-//            }
             float rate = Math.abs(scrollRate);
             for (; i < count - 1; i++, multiple--) {
                 View underTopView = getChildAt(i);
@@ -412,7 +403,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
      */
     private void setTopView() {
         if (getChildCount() > 0) {
-            mActiveCard = getChildAt(LAST_VIEW_IN_STACK);
+            mActiveCard = getChildAt(mLastViewIndexInStack);
             if (mActiveCard != null) {
                 mActiveCard.setOnClickListener(new OnClickListener() {
                     @Override
@@ -446,12 +437,12 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         }
     }
 
-    public void setOnSwipeListener(onSwipeListener onSwipeListener) {
-        this.mFlingListener = onSwipeListener;
+    public void setOnSwipeListener(onSwipeListener listener) {
+        this.mOnSwipeListener = listener;
     }
 
-    public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
-        this.mOnItemClickListener = onItemClickListener;
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.mOnItemClickListener = listener;
     }
 
 
@@ -495,9 +486,9 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
     /******************* ViewDragHelper.Callback ********************************/
 
-    boolean isSwipeRun;
-    int objectX, objectY;
-    float aPosX, aPosY;
+    boolean mIsSwipeRun;
+    int mObjectX, mObjectY;
+    int mPosX, mPosY;
 
     private static final float BORDER_PERCENT_WIDTH = 1f / 4f; // 横向边界，超过代表可移除
     private static final float BORDER_PERCENT_HEIGHT = 1f / 4f; // 纵向边界，超过代表可移除
@@ -508,10 +499,13 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
         @Override
         public boolean tryCaptureView(View child, int pointerId) {
-            objectX = child.getLeft();
-            objectY = child.getTop();
-            Logger.e("kido", "tryCaptureView->");
-            return child == mActiveCard;
+            boolean shouldCapture = child == mActiveCard && !mRequestingPreCard && !mIsAnimating;
+            if (shouldCapture) {
+                mObjectX = child.getLeft();
+                mObjectY = child.getTop();
+            }
+            Logger.e("kido", "tryCaptureView-> shouldCapture=%s", shouldCapture);
+            return shouldCapture;
         }
 
         @Override
@@ -526,40 +520,41 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
         @Override
         public void onViewPositionChanged(View changedView, int left, int top, int dx, int dy) {
-            int offsetX = left - objectX;
-            int offsetY = top - objectY;
-//            float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / 1f * (changedView.getWidth() * BORDER_PERCENT_WIDTH + changedView.getHeight() * BORDER_PERCENT_HEIGHT);
-            float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / 400;
+            int offsetX = left - mObjectX;
+            int offsetY = top - mObjectY;
+            float totalOffset = 2f * Math.min(changedView.getWidth() * BORDER_PERCENT_WIDTH, changedView.getHeight() * BORDER_PERCENT_HEIGHT);
+            float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / totalOffset;
+//            float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / 400;
             progress = Math.min(progress, 1f);
             adjustChildrenOfUnderTopView(progress);
         }
 
         @Override
         public void onViewReleased(View releasedChild, float xvel, float yvel) {
-            aPosX = releasedChild.getLeft();
-            aPosY = releasedChild.getTop();
-            int disX = releasedChild.getLeft() - objectX;
-            int disY = releasedChild.getTop() - objectY;
+            mPosX = releasedChild.getLeft();
+            mPosY = releasedChild.getTop();
+            int disX = releasedChild.getLeft() - mObjectX;
+            int disY = releasedChild.getTop() - mObjectY;
             float maxDeltaX = releasedChild.getWidth() * BORDER_PERCENT_WIDTH;
             float maxDeltaY = releasedChild.getHeight() * BORDER_PERCENT_HEIGHT;
             int finalX, finalY;
             if (disX < -maxDeltaX) { // left
-                isSwipeRun = true;
+                mIsSwipeRun = true;
                 finalX = -releasedChild.getWidth();
                 finalY = getExitYByX(finalX);
             } else if (disX > maxDeltaX) { // right
-                isSwipeRun = true;
+                mIsSwipeRun = true;
                 finalX = getWidth();
                 finalY = getExitYByX(finalX);
             } else if (disY < -maxDeltaY) { // top
-                isSwipeRun = true;
+                mIsSwipeRun = true;
                 finalY = -releasedChild.getHeight();
                 finalX = getExitXByY(finalY);
             } else if (disY > maxDeltaY) { // bottom
-                isSwipeRun = true;
+                mIsSwipeRun = true;
                 finalY = getHeight();
                 finalX = getExitXByY(finalY);
-            } else {
+            } else { // roll back
                 finalX = mInitObjectX;
                 finalY = mInitObjectY;
             }
@@ -567,7 +562,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
             mViewDragHelper.smoothSlideViewTo(releasedChild, finalX, finalY);
             invalidate();
 
-            Logger.e("kido", "smoothSlideViewTo-> finalLeft=" + finalX + ", finalTop=" + finalY);
+            Logger.e("kido", "smoothSlideViewTo-> finalX=%s, finalY=%s", finalX, finalY);
         }
     };
 
@@ -589,12 +584,12 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
      */
     private int getLinearPoint(boolean isGetYbyX, float xOrY) {
         float[] x = new float[2];
-        x[0] = objectX;
-        x[1] = aPosX;
+        x[0] = mObjectX;
+        x[1] = mPosX;
 
         float[] y = new float[2];
-        y[0] = objectY;
-        y[1] = aPosY;
+        y[0] = mObjectY;
+        y[1] = mPosY;
 
         LinearRegression regression = new LinearRegression(x, y);
 
