@@ -61,8 +61,18 @@ public class SwipeCardsActivity extends AppCompatActivity {
         mSwipeCardsView.setIsNeedSwipe(true);
         mSwipeCardsView.setOnSwipeListener(new SwipeAdapterView.onSwipeListener() {
             @Override
-            public void onCardSelected(int index) {
-                Logger.e("kido", "onCardSelected->" + index);
+            public void onCardDragged(int position, float progress) {
+                Logger.e("kido", "onCardDragged->position=%s, progress=%s", position, progress);
+            }
+
+            @Override
+            public void onCardSelected(int position) {
+                Logger.e("kido", "onCardSelected->index=%s", position);
+            }
+
+            @Override
+            public void onCardDragStateChanged(int state) {
+                Logger.e("kido", "onCardDragStateChanged->state=%s", state);
             }
         });
 

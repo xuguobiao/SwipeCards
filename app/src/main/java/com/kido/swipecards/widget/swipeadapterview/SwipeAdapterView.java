@@ -56,10 +56,28 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     private int widthMeasureSpec;
     private int heightMeasureSpec;
 
-    private int mCurrentIndex = 0;
+    private int mCurrentItem = 0;
     private boolean mRequestingPreCard = false;
     private boolean mIsAnimating = false;
     private static final float MAX_COS = (float) Math.cos(Math.toRadians(45));
+
+    /**
+     * A view is not currently being dragged or animating as a result of a fling/snap.
+     */
+    public static final int STATE_IDLE = ViewDragHelper.STATE_IDLE;
+
+    /**
+     * A view is currently being dragged. The position is currently changing as a result
+     * of user input or simulated user input.
+     */
+    public static final int STATE_DRAGGING = ViewDragHelper.STATE_DRAGGING;
+
+    /**
+     * A view is currently settling into place as a result of a fling or
+     * predefined non-interactive motion.
+     */
+    public static final int STATE_SETTLING = ViewDragHelper.STATE_SETTLING;
+
 
     public SwipeAdapterView(Context context) {
         this(context, null);
@@ -109,9 +127,9 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     }
 
     public boolean gotoNextCard() {
-        if (mCurrentIndex >= getAdapter().getCount() - 1
-                || mIsAnimating || mRequestingPreCard || mViewDragHelper.getViewDragState() != ViewDragHelper.STATE_IDLE
-                || mActiveCard == null) {
+        if (mCurrentItem >= getAdapter().getCount()
+                || mActiveCard == null
+                || !isCardStatic()) {
             return false;
         }
         mIsSwipeRun = true;
@@ -124,19 +142,19 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
      * @return true if can goto pre-card; false if no pre-card
      */
     public boolean gotoPreCard() {
-        if (mCurrentIndex == 0
-                || mIsAnimating || mRequestingPreCard || mViewDragHelper.getViewDragState() != ViewDragHelper.STATE_IDLE) {
+        if (mCurrentItem <= 0
+                || !isCardStatic()) {
             return false;
         }
-        mCurrentIndex = mCurrentIndex - 1;
+        mCurrentItem = mCurrentItem - 1;
         mRequestingPreCard = true;
         mActiveCard = null;
-        getAdapter().notifyDataSetChanged();
+        requestLayout();
         return true;
     }
 
     private void fadeFlyIn() {
-        if (mIsAnimating) {
+        if (mIsAnimating || mActiveCard == null) {
             mRequestingPreCard = false;
             return;
         }
@@ -157,13 +175,42 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
                         mIsAnimating = false;
                         mRequestingPreCard = false;
                         adjustChildrenOfUnderTopView(0);
+                        if (mOnSwipeListener != null) {
+                            mOnSwipeListener.onCardSelected(mCurrentItem);
+                        }
 
                     }
                 }).start();
     }
 
+    /**
+     * 当前card是否处于静止正常态
+     *
+     * @return
+     */
+    private boolean isCardStatic() {
+        return !mIsAnimating && !mRequestingPreCard && mViewDragHelper.getViewDragState() == ViewDragHelper.STATE_IDLE;
+    }
+
     private float getRotationValue(float value) {
         return value / MAX_COS;
+    }
+
+
+    public void setCurrentItem(int item) {
+        if (mAdapter == null) {
+            return;
+        }
+        item = constrain(item, 0, mAdapter.getCount() - 1);
+        mCurrentItem = item;
+    }
+
+    public int getCurrentItem() {
+        return mCurrentItem;
+    }
+
+    public View getCurrent() {
+        return mActiveCard;
     }
 
     @Override
@@ -171,8 +218,10 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         return mActiveCard;
     }
 
+
     @Override
     public void setSelection(int position) {
+        setCurrentItem(position);
     }
 
 
@@ -195,10 +244,10 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
                 adjustChildrenOfUnderTopView(1f);
 
                 mActiveCard = null;
-                mCurrentIndex++;
-                getAdapter().notifyDataSetChanged();
+                mCurrentItem++;
+                requestLayout();
                 if (mOnSwipeListener != null) {
-                    mOnSwipeListener.onCardSelected(mCurrentIndex);
+                    mOnSwipeListener.onCardSelected(mCurrentItem);
                 }
             }
             mIsAnimating = false;
@@ -232,7 +281,14 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     }
 
     private int getValidCount() {
-        return getAdapter().getCount() - mCurrentIndex;
+        if (mAdapter == null) {
+            return 0;
+        }
+        return constrain(mAdapter.getCount() - mCurrentItem, 0, mAdapter.getCount());
+    }
+
+    static int constrain(int amount, int low, int high) {
+        return amount < low ? low : (amount > high ? high : amount);
     }
 
     @Override
@@ -249,18 +305,18 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 //            removeAllViewsInLayout();
             removeViewToCache(0);
         } else {
-            View topCard = getChildAt(mLastViewIndexInStack);
-            if (mActiveCard != null && topCard != null && topCard == mActiveCard && !mRequestingPreCard) {
-//                removeViewsInLayout(0, mLastViewIndexInStack);
-                removeViewToCache(1);
-                layoutChildren(1, validCount);
-            } else {
-                // Reset the UI and set top view listener
+//            View topCard = getChildAt(mLastViewIndexInStack);
+//            if (mActiveCard != null && topCard != null && topCard == mActiveCard && !mRequestingPreCard) {
+////                removeViewsInLayout(0, mLastViewIndexInStack);
+//                removeViewToCache(1);
+//                layoutChildren(1, validCount);
+//            } else {
+            // Reset the UI and set top view listener
 //                removeAllViewsInLayout();
-                removeViewToCache(0);
-                layoutChildren(0, validCount);
-                setTopView();
-            }
+            removeViewToCache(0);
+            layoutChildren(0, validCount);
+            setTopView();
+//            }
         }
         mInLayout = false;
 
@@ -283,14 +339,14 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         }
     }
 
-    private void layoutChildren(int startingIndex, int adapterCount) {
-        while (startingIndex < Math.min(adapterCount, mMaxVisibleCount)) {
+    private void layoutChildren(int startingIndex, int validCount) {
+        while (startingIndex < Math.min(validCount, mMaxVisibleCount)) {
             View cacheView = null;
             if (mViewCache.size() > 0) {
                 cacheView = mViewCache.get(0);
                 mViewCache.remove(cacheView);
             }
-            View newUnderChild = mAdapter.getView(mCurrentIndex + startingIndex, cacheView, this);
+            View newUnderChild = mAdapter.getView(mCurrentItem + startingIndex, cacheView, this);
             if (newUnderChild.getVisibility() != GONE) {
                 makeAndAddView(newUnderChild, startingIndex);
                 mLastViewIndexInStack = startingIndex;
@@ -409,7 +465,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
                     @Override
                     public void onClick(View v) {
                         if (mOnItemClickListener != null)
-                            mOnItemClickListener.onItemClicked(v, mCurrentIndex);
+                            mOnItemClickListener.onItemClicked(v, mCurrentItem);
                     }
                 });
             }
@@ -430,6 +486,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         }
 
         mAdapter = adapter;
+        mCurrentItem = 0;
 
         if (mAdapter != null && mDataSetObserver == null) {
             mDataSetObserver = new AdapterDataSetObserver();
@@ -445,34 +502,36 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
         this.mOnItemClickListener = listener;
     }
 
-
     @Override
     public LayoutParams generateLayoutParams(AttributeSet attrs) {
         return new FrameLayout.LayoutParams(getContext(), attrs);
     }
 
-
     private class AdapterDataSetObserver extends DataSetObserver {
         @Override
         public void onChanged() {
-            requestLayout();
+            if (isCardStatic())
+                requestLayout();
         }
 
         @Override
         public void onInvalidated() {
-            requestLayout();
+            if (isCardStatic())
+                requestLayout();
         }
 
     }
-
 
     public interface OnItemClickListener {
         void onItemClicked(View v, int pos);
     }
 
     public interface onSwipeListener {
+        void onCardDragged(int position, float progress);
 
-        void onCardSelected(int index);
+        void onCardSelected(int position);
+
+        void onCardDragStateChanged(int state);
 
     }
 
@@ -495,7 +554,12 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
     private ViewDragHelper.Callback mDragCallback = new ViewDragHelper.Callback() {
 
-//        int disX, disY;
+        @Override
+        public void onViewDragStateChanged(int state) {
+            if (mOnSwipeListener != null) {
+                mOnSwipeListener.onCardDragStateChanged(state);
+            }
+        }
 
         @Override
         public boolean tryCaptureView(View child, int pointerId) {
@@ -527,6 +591,9 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 //            float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / 400;
             progress = Math.min(progress, 1f);
             adjustChildrenOfUnderTopView(progress);
+            if (mOnSwipeListener != null) {
+                mOnSwipeListener.onCardDragged(mCurrentItem, progress);
+            }
         }
 
         @Override
