@@ -549,8 +549,8 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     int mObjectX, mObjectY;
     int mPosX, mPosY;
 
-    private static final float BORDER_PERCENT_WIDTH = 1f / 4f; // 横向边界，超过代表可移除
-    private static final float BORDER_PERCENT_HEIGHT = 1f / 4f; // 纵向边界，超过代表可移除
+    private static final float BORDER_PERCENT_WIDTH = 1f / 3f; // 横向边界，超过代表可移除
+    private static final float BORDER_PERCENT_HEIGHT = 1f / 3f; // 纵向边界，超过代表可移除
 
     private ViewDragHelper.Callback mDragCallback = new ViewDragHelper.Callback() {
 
@@ -563,7 +563,7 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
         @Override
         public boolean tryCaptureView(View child, int pointerId) {
-            boolean shouldCapture = child == mActiveCard && !mRequestingPreCard && !mIsAnimating;
+            boolean shouldCapture = child == mActiveCard && !mRequestingPreCard && !mIsSwipeRun;
             if (shouldCapture) {
                 mObjectX = child.getLeft();
                 mObjectY = child.getTop();
