@@ -10,7 +10,7 @@ import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.animation.LinearInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
@@ -85,8 +85,8 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
 
     public SwipeAdapterView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        mViewDragHelper = ViewDragHelper.create(this, 4f, mDragCallback);
-        mViewDragHelper.mScroller = new Scroller(context, new LinearInterpolator());
+        mViewDragHelper = ViewDragHelper.create(this, 3.5f, mDragCallback);
+        mViewDragHelper.mScroller = new Scroller(context, new AccelerateInterpolator());
         mDetector = new GestureDetector(context, new ScrollDetector());
     }
 
@@ -549,8 +549,8 @@ public class SwipeAdapterView extends AdapterView<BaseAdapter> {
     int mObjectX, mObjectY;
     int mPosX, mPosY;
 
-    private static final float BORDER_PERCENT_WIDTH = 1f / 3f; // 横向边界，超过代表可移除
-    private static final float BORDER_PERCENT_HEIGHT = 1f / 3f; // 纵向边界，超过代表可移除
+    private static final float BORDER_PERCENT_WIDTH = 1f / 3.5f; // 横向边界，超过代表可移除
+    private static final float BORDER_PERCENT_HEIGHT = 1f / 3.5f; // 纵向边界，超过代表可移除
 
     private ViewDragHelper.Callback mDragCallback = new ViewDragHelper.Callback() {
 
