@@ -98,6 +98,10 @@ public class SwipeAdapterView extends ViewGroup {
         for (int i = 0; i < mMaxVisibleCount; i++) {
             View itemView = mAdapter.onCreateView(this);
             addView(itemView);
+            itemView.setVisibility(GONE);
+            if (i == 0) {
+                itemView.setAlpha(0);// 最底下的view让它透明，以免阴影重叠
+            }
         }
 
         // 2. viewList初始化
@@ -173,6 +177,7 @@ public class SwipeAdapterView extends ViewGroup {
         View tempView = viewList.get(viewList.size() - 1); // 最底下的view
         tempView.bringToFront();
         tempView.setVisibility(View.VISIBLE);
+        tempView.setAlpha(1);
         viewList.remove(tempView);
         viewList.add(0, tempView);
 
@@ -192,7 +197,7 @@ public class SwipeAdapterView extends ViewGroup {
         activeCard.setX(activeCard.getWidth() / 3f);
         activeCard.setY(-getRotationValue(activeCard.getHeight()));
         activeCard.setRotation(30f);
-        adjustChildrenOfUnderTopView(1f);
+        adjustChildrenOfUnderTopView1(1f);
         activeCard.animate()
                 .setDuration(300)
                 .setInterpolator(new OvershootInterpolator(0.5f))
@@ -204,7 +209,7 @@ public class SwipeAdapterView extends ViewGroup {
                     public void onAnimationEnd(Animator animation) {
                         mIsAnimating = false;
                         mRequestingPreCard = false;
-                        adjustChildrenOfUnderTopView(0);
+                        adjustChildrenOfUnderTopView1(0);
                         triggerCardSelected();
 
                     }
@@ -313,6 +318,10 @@ public class SwipeAdapterView extends ViewGroup {
         return amount < low ? low : (amount > high ? high : amount);
     }
 
+    static float constrain(float amount, float low, float high) {
+        return amount < low ? low : (amount > high ? high : amount);
+    }
+
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
 
@@ -320,6 +329,7 @@ public class SwipeAdapterView extends ViewGroup {
         for (int i = 0; i < childCount; i++) {
             View viewItem = viewList.get(i);
             layoutView(viewItem, i);
+            adjustChildView(viewItem, i);
         }
 
         if (mInitObjectY == 0 && mInitObjectX == 0 && viewList.size() > 0) {
@@ -397,42 +407,42 @@ public class SwipeAdapterView extends ViewGroup {
                 break;
         }
         child.layout(childLeft, childTop, childLeft + w, childTop + h);
-        // 缩放层叠效果
-        adjustChildView(child, index);
     }
 
     private void adjustChildView(View child, int index) {
-        if (index > -1 && index < mMaxVisibleCount) {
+        if (index >= 0 && index < mMaxVisibleCount) {
             int multiple = Math.min(index, mMaxVisibleCount - 2); // 最大个是MAX_VISIBLE，实际上重叠的时候只显示 maxVisibleCount-1 个，最顶端的view的multiple从0开始，则最大为MAX_VISIBLE-2
             child.offsetTopAndBottom(mYOffsetStep * multiple);
             child.setScaleX(1 - mScaleStep * multiple);
             child.setScaleY(1 - mScaleStep * multiple);
+            if (index == mMaxVisibleCount - 1) {
+                child.setAlpha(0);
+            }
         }
     }
 
-    private void adjustChildrenOfUnderTopView(float scrollRate) {
-        int count = getChildCount();
-        if (count > 1) {
-            // count >= maxVisibleCount, 顶部和底部的view不动，中间的动。因为底部已经是最小（重合的时候底部上一张也是最小，它会用来变动），顶部已经是最大。index 的范围是 [1, count-2], multiple 为最大的 maxVisibleCount-2
-            //
-            int i;
-            int multiple;
-            if (count >= mMaxVisibleCount) {
-                i = 1;
-                multiple = mMaxVisibleCount - 2;
-            } else {
-                i = 0;
-                multiple = count - 1;
-            }
-            float rate = Math.abs(scrollRate);
-            for (; i < count - 1; i++, multiple--) {
-                View underTopView = getChildAt(i);
-                int offset = (int) (mYOffsetStep * (multiple - rate));
-                underTopView.offsetTopAndBottom(offset - underTopView.getTop() + mInitObjectY);
-                underTopView.setScaleX(1 - mScaleStep * multiple + mScaleStep * rate);
-                underTopView.setScaleY(1 - mScaleStep * multiple + mScaleStep * rate);
-            }
+    /**
+     * 顶部和底部的view不动，中间的动。因为底部已经是最小（重合的时候底部上一张也是最小，它会用来变动），顶部已经是最大。
+     * <p></p>
+     * index 的范围是 [1, count-2], multiple 为最大的 maxVisibleCount-2
+     *
+     * @param scrollRate
+     */
+    private void adjustChildrenOfUnderTopView1(float scrollRate) {
+        if (viewList.size() <= 1) {
+            return;
         }
+        float rate = Math.abs(scrollRate);
+        for (int index = 1, size = viewList.size(); index < size - 1; index++) {
+            int multiple = Math.min(index, size - 2);
+            View underTopView = viewList.get(index);
+            int offset = (int) (mYOffsetStep * (multiple - rate));
+            underTopView.offsetTopAndBottom(offset - underTopView.getTop() + mInitObjectY);
+            underTopView.setScaleX(1 - mScaleStep * multiple + mScaleStep * rate);
+            underTopView.setScaleY(1 - mScaleStep * multiple + mScaleStep * rate);
+        }
+        float bottomAlpha = constrain(rate > 0.1f ? rate + 0.5f : rate, 0f, 1f);
+        viewList.get(viewList.size() - 1).setAlpha(bottomAlpha);
     }
 
     public BaseAdapter getAdapter() {
@@ -479,20 +489,25 @@ public class SwipeAdapterView extends ViewGroup {
         int delay = 0;
         for (int i = 0; i < mMaxVisibleCount; i++) {
             View itemView = viewList.get(i);
-//            if (itemView.getVisibility() == VISIBLE) {
-//                continue; // 可见的view已然存在，不改动
-//            }
-            if (i == 0 && itemView.getVisibility() != VISIBLE) {
-                bInsertDataWhenEmpty = true;
+            if (itemView.getVisibility() == VISIBLE) {
+                continue; // 可见的view已然存在，不改动
             }
             int index = mCurrentItem + i;
-            if (index < count) {
-                itemView.setVisibility(View.VISIBLE);
-                mAdapter.bindView(itemView, index);
-            } else {
-                itemView.setVisibility(View.GONE);
+            if (index >= count) {
+                break;
             }
+            if (i == 0) {
+                bInsertDataWhenEmpty = true;
+            }
+            if (i == mMaxVisibleCount - 1) {
+                itemView.setAlpha(0f); // 最底下的view让它透明，以免阴影重叠
+                itemView.setVisibility(View.VISIBLE);
+            } else {
+                setVisibilityWithAnimation(itemView, VISIBLE, delay++);
+            }
+            mAdapter.bindView(itemView, index);
         }
+
         if (bInsertDataWhenEmpty) { //当前空的情况下新增了数据。（正常情况是刚进来为空，然后新增了数据会select 0；另外一种情况是滑到最后空了（假设此时select了8），则新增数据后也会再次select 8）
             if (mOnSwipeListener != null) {
                 mOnSwipeListener.onCardSelected(mCurrentItem);
@@ -505,6 +520,19 @@ public class SwipeAdapterView extends ViewGroup {
             view.setVisibility(visibility);
             view.setAlpha(0);
             view.animate().alpha(1f).setStartDelay(delayIndex * 200).setDuration(360).start();
+        }
+    }
+
+    /**
+     * @param view
+     * @param visibility
+     */
+    public static void setVisibility(View view, int visibility) {
+        if (view != null) {
+            view.setVisibility(visibility);
+            if (visibility == VISIBLE) {
+                view.setAlpha(1);
+            }
         }
     }
 
@@ -528,6 +556,7 @@ public class SwipeAdapterView extends ViewGroup {
         for (int i = num - 1; i > 0; i--) {
             View tempView = viewList.get(i);
             tempView.bringToFront();
+            tempView.setAlpha(1);
         }
 
         // 3. changedView填充新数据
@@ -627,8 +656,8 @@ public class SwipeAdapterView extends ViewGroup {
             int offsetY = top - mInitObjectY;
             float totalOffset = 2f * Math.min(changedView.getWidth() * BORDER_PERCENT_WIDTH, changedView.getHeight() * BORDER_PERCENT_HEIGHT);
             float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / totalOffset;
-            progress = Math.min(progress, 1f);
-            adjustChildrenOfUnderTopView(progress);
+            progress = constrain(progress, 0f, 1f);
+            adjustChildrenOfUnderTopView1(progress);
             if (mOnSwipeListener != null) {
                 mOnSwipeListener.onCardDragged(mCurrentItem, progress);
             }
