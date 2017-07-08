@@ -111,7 +111,7 @@ public class ViewDragHelper {
     private int mEdgeSize;
     private int mTrackingEdges;
 
-    protected Scroller mScroller;
+    public Scroller mScroller;
 
     private final Callback mCallback;
 

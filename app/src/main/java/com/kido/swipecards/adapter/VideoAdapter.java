@@ -11,6 +11,7 @@ import android.widget.Toast;
 
 import com.kido.swipecards.R;
 import com.kido.swipecards.bean.VideoData;
+import com.kido.swipecards.widget.swipeadapterview.SwipeBaseAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ import java.util.List;
  * @author Kido
  */
 
-public class VideoAdapter extends BaseAdapter {
+public class VideoAdapter extends SwipeBaseAdapter {
 
     private Context mContext;
     private List<VideoData> mList; // 原始
@@ -100,15 +101,9 @@ public class VideoAdapter extends BaseAdapter {
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public void bindView(View view, int position) {
         ViewHolder holder;
-        if (convertView == null) {
-            convertView = mInflater.inflate(R.layout.item_video_card, parent, false);
-            holder = new ViewHolder(convertView);
-            convertView.setTag(holder);
-        } else {
-            holder = (ViewHolder) convertView.getTag();
-        }
+        holder = (ViewHolder) view.getTag();
 
         VideoData data = mList.get(position);
         if (data.authorIcon > 0) {
@@ -119,13 +114,20 @@ public class VideoAdapter extends BaseAdapter {
             holder.video.setImageResource(data.videoThumb);
         }
         holder.videoTitle.setText(data.videoTitle);
-        holder.indicatorText.setText((position+1) + "/" + mList.size());
+        holder.indicatorText.setText((position + 1) + "/" + mList.size());
         holder.videoTitle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Toast.makeText(v.getContext(), "click the title.", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    @Override
+    public View onCreateView(ViewGroup parent) {
+        View convertView = mInflater.inflate(R.layout.item_video_card, parent, false);
+        ViewHolder viewHolder = new ViewHolder(convertView);
+        convertView.setTag(viewHolder);
 
         return convertView;
     }
