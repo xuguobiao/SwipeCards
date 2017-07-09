@@ -10,7 +10,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
@@ -47,10 +46,11 @@ public class SwipeAdapterView extends ViewGroup {
     // 支持左右滑
     public boolean mIsNeedSwipe = true;
 
-    private int mInitObjectY;
-    private int mInitObjectX;
+    private int mInitObjectTop;
+    private int mInitObjectLeft;
 
     private ViewDragHelper mViewDragHelper;
+    private SwipeDragCallback mDragCallback;
     private GestureDetector mDetector;
     private int widthMeasureSpec;
     private int heightMeasureSpec;
@@ -92,7 +92,8 @@ public class SwipeAdapterView extends ViewGroup {
         mTouchSlop = configuration.getScaledTouchSlop();
         mDetector = new GestureDetector(context, new ScrollDetector());
         mDetector.setIsLongpressEnabled(false);
-        mViewDragHelper = ViewDragHelper.create(this, 3.5f, new SwipeDragCallback());
+        mDragCallback = new SwipeDragCallback();
+        mViewDragHelper = ViewDragHelper.create(this, 3.5f, mDragCallback);
         mViewDragHelper.mScroller = new Scroller(context, new DiffInterpolator()) {
             @Override
             public void startScroll(int startX, int startY, int dx, int dy, int duration) {
@@ -197,7 +198,7 @@ public class SwipeAdapterView extends ViewGroup {
         mCurrentItem--;
         mAdapter.bindView(tempView, mCurrentItem);
 
-        fadeFlyIn();
+        fadeFlyIn(tempView);
         return true;
     }
 
@@ -216,8 +217,8 @@ public class SwipeAdapterView extends ViewGroup {
 //        activeCard.animate()
 //                .setDuration(300)
 //                .setInterpolator(new OvershootInterpolator(0.5f))
-//                .x(mInitObjectX)
-//                .y(mInitObjectY)
+//                .x(mInitObjectLeft)
+//                .y(mInitObjectTop)
 //                .rotation(0)
 //                .setListener(new AnimatorListenerAdapter() {
 //                    @Override
@@ -231,18 +232,12 @@ public class SwipeAdapterView extends ViewGroup {
 //                }).start();
 //    }
 
-    private void fadeFlyIn() {
-        View activeCard = getCurrent();
-        if (mIsAnimating || activeCard == null) {
-            mRequestingPreCard = false;
-            triggerCardSelected();
-            return;
-        }
+    private void fadeFlyIn(View activeCard) {
         mIsAnimating = true;
         activeCard.offsetLeftAndRight((int) (activeCard.getWidth() / 3f));
         activeCard.offsetTopAndBottom(-(int) getRotationValue(activeCard.getHeight()));
         activeCard.setRotation(MAX_ROTATION);
-        if (mViewDragHelper.smoothSlideViewTo(activeCard, mInitObjectX, mInitObjectY)) {
+        if (mViewDragHelper.smoothSlideViewTo(activeCard, mInitObjectLeft, mInitObjectTop)) {
             ViewCompat.postInvalidateOnAnimation(this);
         }
     }
@@ -358,6 +353,13 @@ public class SwipeAdapterView extends ViewGroup {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
 
+        int dx = 0, dy = 0;
+        View captureView = mViewDragHelper.getCapturedView();
+        if (captureView != null) { // 拖动过程中requestLayout重新布局后，这里记录当前偏移量
+            dx = captureView.getLeft() - mInitObjectLeft;
+            dy = captureView.getTop() - mInitObjectTop;
+        }
+
         int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
             View viewItem = viewList.get(i);
@@ -365,9 +367,15 @@ public class SwipeAdapterView extends ViewGroup {
             adjustChildView(viewItem, i);
         }
 
-        if (mInitObjectY == 0 && mInitObjectX == 0 && viewList.size() > 0) {
-            mInitObjectY = viewList.get(0).getTop();
-            mInitObjectX = viewList.get(0).getLeft();
+        if (mInitObjectTop == 0 && mInitObjectLeft == 0 && viewList.size() > 0) {
+            mInitObjectLeft = viewList.get(0).getLeft();
+            mInitObjectTop = viewList.get(0).getTop();
+        }
+
+        if (captureView != null) { // 拖动过程中requestLayout重新布局后，这里让其调整回到之前所在的位置
+            captureView.offsetLeftAndRight(dx);
+            captureView.offsetTopAndBottom(dy);
+            mDragCallback.onViewPositionChanged(captureView, captureView.getLeft(), captureView.getTop(), dx, dy);
         }
     }
 
@@ -497,7 +505,7 @@ public class SwipeAdapterView extends ViewGroup {
                 int multiple = Math.min(index, size - 2);
 
                 int offset = (int) (mYOffsetStep * (multiple - rate));
-                childView.offsetTopAndBottom(offset - childView.getTop() + mInitObjectY);
+                childView.offsetTopAndBottom(offset - childView.getTop() + mInitObjectTop);
                 childView.setScaleX(1 - mScaleStep * multiple + mScaleStep * rate);
                 childView.setScaleY(1 - mScaleStep * multiple + mScaleStep * rate);
             }
@@ -593,7 +601,7 @@ public class SwipeAdapterView extends ViewGroup {
         }
 
         View changedView = releasedViewList.get(0);
-        if (changedView.getLeft() == mInitObjectX) {
+        if (changedView.getLeft() == mInitObjectLeft) {
             releasedViewList.remove(0);
             return;
         }
@@ -660,7 +668,9 @@ public class SwipeAdapterView extends ViewGroup {
         }
     }
 
-    /******************* ViewDragHelper.Callback ********************************/
+    /*******************
+     * ViewDragHelper.Callback
+     ********************************/
 
     boolean mIsSwipeRun;
 
@@ -710,8 +720,8 @@ public class SwipeAdapterView extends ViewGroup {
         @Override
         public void onViewPositionChanged(View changedView, int left, int top, int dx, int dy) {
 
-            int offsetX = left - mInitObjectX;
-            int offsetY = top - mInitObjectY;
+            int offsetX = left - mInitObjectLeft;
+            int offsetY = top - mInitObjectTop;
             float totalOffset = 2f * Math.min(changedView.getWidth() * BORDER_PERCENT_WIDTH, changedView.getHeight() * BORDER_PERCENT_HEIGHT);
             float progress = 1f * (Math.abs(offsetX) + Math.abs(offsetY)) / totalOffset;
             progress = constrain(progress, 0f, 1f);
@@ -726,8 +736,8 @@ public class SwipeAdapterView extends ViewGroup {
 
         @Override
         public void onViewReleased(View releasedChild, float xvel, float yvel) {
-            int disX = releasedChild.getLeft() - mInitObjectX;
-            int disY = releasedChild.getTop() - mInitObjectY;
+            int disX = releasedChild.getLeft() - mInitObjectLeft;
+            int disY = releasedChild.getTop() - mInitObjectTop;
             float maxDeltaX = releasedChild.getWidth() * BORDER_PERCENT_WIDTH;
             float maxDeltaY = releasedChild.getHeight() * BORDER_PERCENT_HEIGHT;
             int finalX, finalY;
@@ -748,8 +758,8 @@ public class SwipeAdapterView extends ViewGroup {
                 finalY = getHeight();
                 finalX = getExitXByY(finalY, releasedChild);
             } else { // roll back
-                finalX = mInitObjectX;
-                finalY = mInitObjectY;
+                finalX = mInitObjectLeft;
+                finalY = mInitObjectTop;
             }
 
             if (mIsSwipeRun) {
@@ -779,11 +789,11 @@ public class SwipeAdapterView extends ViewGroup {
          */
         private int getLinearPoint(boolean isGetYbyX, float xOrY, View child) {
             float[] x = new float[2];
-            x[0] = mInitObjectX;
+            x[0] = mInitObjectLeft;
             x[1] = child.getLeft();
 
             float[] y = new float[2];
-            y[0] = mInitObjectY;
+            y[0] = mInitObjectTop;
             y[1] = child.getTop();
 
             LinearRegression regression = new LinearRegression(x, y);

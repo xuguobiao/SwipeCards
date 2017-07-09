@@ -68,6 +68,22 @@ public class SwipeCardsActivity extends AppCompatActivity {
             @Override
             public void onCardSelected(int position) {
                 Logger.e("kido", "onCardSelected->index=%s", position);
+                if (mSwipeCardsView.getCurrent() != null)
+                    mSwipeCardsView.getCurrent().requestLayout();
+                mSwipeCardsView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mSwipeCardsView.getCurrent() != null)
+                            mSwipeCardsView.getCurrent().requestLayout();
+                    }
+                }, 50);
+                mSwipeCardsView.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mSwipeCardsView.getCurrent() != null)
+                            mSwipeCardsView.getCurrent().requestLayout();
+                    }
+                }, 500);
             }
 
             @Override
